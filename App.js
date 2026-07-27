@@ -9,8 +9,13 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Notifications from "expo-notifications";
+// Subpath import so Metro bundles only this weight, not all of Poppins.
+import {
+  useFonts,
+  Poppins_500Medium,
+} from "@expo-google-fonts/poppins/500Medium";
 import { QUOTES } from "./quotes";
-import { BACKGROUNDS, randomBackgroundIndex } from "./backgrounds";
+import { BACKGROUNDS, BRAND, randomBackgroundIndex } from "./backgrounds";
 import {
   configureNotificationHandling,
   rescheduleIfNeeded,
@@ -62,6 +67,9 @@ function BackgroundShapes({ shapes }) {
 export default function App() {
   const [quoteIndex, setQuoteIndex] = useState(() => randomQuoteIndex());
   const [bgIndex, setBgIndex] = useState(() => randomBackgroundIndex());
+  // UI chrome uses Poppins (see BRAND.md); falls back to system while loading.
+  const [fontsLoaded] = useFonts({ Poppins_500Medium });
+  const chromeFont = fontsLoaded ? { fontFamily: "Poppins_500Medium" } : null;
   const handledResponseRef = useRef(null);
   const lastResponse = Notifications.useLastNotificationResponse();
 
@@ -118,9 +126,9 @@ export default function App() {
             pressed && styles.shuffleButtonPressed,
           ]}
         >
-          <Text style={styles.shuffleText}>🔀 Shuffle</Text>
+          <Text style={[styles.shuffleText, chromeFont]}>🔀 Shuffle</Text>
         </Pressable>
-        <Text style={styles.brand}>SHEETPOSO</Text>
+        <Text style={[styles.brand, chromeFont]}>SHEETPOSO</Text>
       </View>
     </View>
   );
@@ -129,20 +137,21 @@ export default function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: BRAND.sage,
   },
   content: {
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 28,
   },
+  // The quote stays loud on purpose — the calm wrapper is the joke (BRAND.md).
   quote: {
-    color: "#fff",
+    color: BRAND.cream,
     fontWeight: "900",
     textAlign: "center",
     textTransform: "uppercase",
     letterSpacing: 1,
-    textShadowColor: "rgba(0, 0, 0, 0.6)",
+    textShadowColor: "rgba(60, 70, 55, 0.45)",
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 10,
   },
@@ -152,25 +161,24 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   shuffleButton: {
-    backgroundColor: "rgba(0, 0, 0, 0.35)",
-    borderColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "rgba(110, 127, 104, 0.5)",
+    borderColor: "rgba(247, 243, 234, 0.7)",
     borderWidth: 1.5,
     borderRadius: 999,
     paddingVertical: 14,
     paddingHorizontal: 34,
   },
   shuffleButtonPressed: {
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    backgroundColor: BRAND.sageDeep,
   },
   shuffleText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
+    color: BRAND.cream,
+    fontSize: 17,
+    letterSpacing: 2,
   },
   brand: {
-    color: "rgba(255, 255, 255, 0.55)",
+    color: "rgba(247, 243, 234, 0.6)",
     fontSize: 12,
-    fontWeight: "700",
     letterSpacing: 4,
   },
 });

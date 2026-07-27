@@ -29,7 +29,7 @@ export function configureNotificationHandling() {
 async function ensureAndroidChannel() {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: "Daily wisdom",
+    name: "Daily Reflection",
     importance: Notifications.AndroidImportance.DEFAULT,
     vibrationPattern: [0, 250],
     enableVibrate: true,
@@ -74,7 +74,7 @@ async function scheduleQuoteAt(date) {
   const quoteIndex = Math.floor(Math.random() * QUOTES.length);
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: "Sheetposo",
+      title: "Daily Reflection",
       body: QUOTES[quoteIndex],
       data: { quoteIndex },
       sound: false,

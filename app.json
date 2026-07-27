@@ -6,16 +6,24 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#141e30",
+    "backgroundColor": "#8A9A83",
     "android": {
       "package": "com.tomardx.sheetposo",
       "adaptiveIcon": {
-        "backgroundColor": "#141e30",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#8A9A83"
       }
     },
-    "plugins": ["expo-notifications"]
+    "plugins": [
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#8A9A83"
+        }
+      ]
+    ]
   }
 }
