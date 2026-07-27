@@ -9,19 +9,30 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Notifications from "expo-notifications";
+import * as SplashScreen from "expo-splash-screen";
+// useFonts comes from expo-font: the @expo-google-fonts subpath exports only
+// the font constant, so importing useFonts from it yields undefined.
+import { useFonts } from "expo-font";
 // Subpath import so Metro bundles only this weight, not all of Poppins.
-import {
-  useFonts,
-  Poppins_500Medium,
-} from "@expo-google-fonts/poppins/500Medium";
+import { Poppins_500Medium } from "@expo-google-fonts/poppins/500Medium";
 import { QUOTES } from "./quotes";
 import { BACKGROUNDS, BRAND, randomBackgroundIndex } from "./backgrounds";
 import {
   configureNotificationHandling,
   rescheduleIfNeeded,
 } from "./notifications";
+import ErrorBoundary, { installGlobalErrorHandler } from "./ErrorBoundary";
 
+// Both are synchronous, JS-only registrations: safe at module scope.
+installGlobalErrorHandler();
 configureNotificationHandling();
+
+// Hold the splash before any async startup work begins. Never let a failure
+// here reject unhandled — a missing splash is not worth crashing over.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Backstop so a stalled font load can never strand the app on the splash.
+const SPLASH_TIMEOUT_MS = 5000;
 
 function randomQuoteIndex(excludeIndex = -1) {
   let idx;
@@ -64,18 +75,41 @@ function BackgroundShapes({ shapes }) {
   ));
 }
 
-export default function App() {
+function Poster() {
   const [quoteIndex, setQuoteIndex] = useState(() => randomQuoteIndex());
   const [bgIndex, setBgIndex] = useState(() => randomBackgroundIndex());
-  // UI chrome uses Poppins (see BRAND.md); falls back to system while loading.
-  const [fontsLoaded] = useFonts({ Poppins_500Medium });
+  // UI chrome uses Poppins (see BRAND.md). A font failure is not fatal: we
+  // fall back to the system face rather than blocking startup.
+  const [fontsLoaded, fontError] = useFonts({ Poppins_500Medium });
+  const [splashTimedOut, setSplashTimedOut] = useState(false);
+  const startupDone = fontsLoaded || !!fontError || splashTimedOut;
+  // Only claim the family once it is actually registered.
   const chromeFont = fontsLoaded ? { fontFamily: "Poppins_500Medium" } : null;
   const handledResponseRef = useRef(null);
   const lastResponse = Notifications.useLastNotificationResponse();
 
   useEffect(() => {
-    rescheduleIfNeeded().catch(() => {
+    const timer = setTimeout(() => setSplashTimedOut(true), SPLASH_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (fontError) {
+      console.warn("Poppins failed to load; using the system font.", fontError);
+    }
+  }, [fontError]);
+
+  // Hide the splash only once startup work has actually settled.
+  useEffect(() => {
+    if (!startupDone) return;
+    SplashScreen.hideAsync().catch(() => {});
+  }, [startupDone]);
+
+  // Runs after mount, so permissions and channel setup never block first paint.
+  useEffect(() => {
+    rescheduleIfNeeded().catch((error) => {
       // Notifications are best-effort; the poster screen works regardless.
+      console.warn("Notification scheduling failed:", error);
     });
   }, []);
 
@@ -102,6 +136,9 @@ export default function App() {
 
   const quote = QUOTES[quoteIndex];
   const background = BACKGROUNDS[bgIndex];
+
+  // Keep the splash up rather than flashing an unstyled first frame.
+  if (!startupDone) return <View style={styles.root} />;
 
   return (
     <View style={styles.root}>
@@ -131,6 +168,14 @@ export default function App() {
         <Text style={[styles.brand, chromeFont]}>SHEETPOSO</Text>
       </View>
     </View>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <Poster />
+    </ErrorBoundary>
   );
 }
 
