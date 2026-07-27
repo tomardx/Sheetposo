@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9BAA93"/>
+      <stop offset="55%" stop-color="#8A9A83"/>
+      <stop offset="100%" stop-color="#6E7F68"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="62%" r="52%">
+      <stop offset="0%" stop-color="#F2EDE3" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#F2EDE3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="petalOuter" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#D9CDB6"/>
+      <stop offset="100%" stop-color="#EDE5D6"/>
+    </linearGradient>
+    <linearGradient id="petalInner" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#E9E0CE"/>
+      <stop offset="100%" stop-color="#F7F3EA"/>
+    </linearGradient>
+    <linearGradient id="petalWilt" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#B3765C"/>
+      <stop offset="60%" stop-color="#CE9679"/>
+      <stop offset="100%" stop-color="#E4C6B0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#field)"/>
+  <rect width="1024" height="1024" fill="url(#halo)"/>
+
+  <g id="lotus" transform="translate(512 618) scale(1.18)">
+    <!-- outer left -->
+    <path transform="rotate(-68) scale(0.93)" fill="url(#petalOuter)"
+      d="M 0 0 C -60 -80 -70 -180 0 -260 C 70 -180 60 -80 0 0 Z"/>
+    <!-- the wilting petal: where outer right should be, hanging low -->
+    <path transform="rotate(103) scale(0.88)" fill="url(#petalWilt)"
+      d="M 0 0 C -60 -80 -70 -180 0 -260 C 70 -180 60 -80 0 0 Z"/>
+    <!-- inner left -->
+    <path transform="rotate(-35)" fill="url(#petalInner)"
+      d="M 0 0 C -60 -80 -70 -180 0 -260 C 70 -180 60 -80 0 0 Z"/>
+    <!-- inner right -->
+    <path transform="rotate(35)" fill="url(#petalInner)"
+      d="M 0 0 C -60 -80 -70 -180 0 -260 C 70 -180 60 -80 0 0 Z"/>
+    <!-- center -->
+    <path transform="scale(1.06)" fill="#FBF8F1"
+      d="M 0 0 C -60 -80 -70 -180 0 -260 C 70 -180 60 -80 0 0 Z"/>
+  </g>
+</svg>
