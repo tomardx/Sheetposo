@@ -1,24 +1,21 @@
 {
   "expo": {
-    "name": "sheetposo-scaffold",
-    "slug": "sheetposo-scaffold",
+    "name": "Sheetposo",
+    "slug": "sheetposo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
-    },
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#141e30",
     "android": {
+      "package": "com.tomardx.sheetposo",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#141e30",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": ["expo-notifications"]
   }
 }
