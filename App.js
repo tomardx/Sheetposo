@@ -43,12 +43,31 @@ const TOAST_VISIBLE_MS = 1500;
 // Transparent lotus layer, reused as the share watermark.
 const LOTUS_MARK = require("./assets/adaptive-icon.png");
 
-function randomQuoteIndex(excludeIndex = -1) {
-  let idx;
+// Quotes are held as text, not as an index into QUOTES, so editing the list
+// can never make a scheduled notification open the wrong quote.
+function randomQuote(exclude) {
+  if (QUOTES.length <= 1) return QUOTES[0];
+  let next;
   do {
-    idx = Math.floor(Math.random() * QUOTES.length);
-  } while (idx === excludeIndex && QUOTES.length > 1);
-  return idx;
+    next = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  } while (next === exclude);
+  return next;
+}
+
+// Prefer the text the notification actually displayed; fall back to its body,
+// then to a legacy index from a notification scheduled by an older build.
+function quoteFromNotification(response) {
+  const content = response?.notification?.request?.content;
+  if (!content) return null;
+  if (typeof content.data?.quoteText === "string" && content.data.quoteText) {
+    return content.data.quoteText;
+  }
+  if (typeof content.body === "string" && content.body) return content.body;
+  const legacyIndex = content.data?.quoteIndex;
+  if (typeof legacyIndex === "number" && QUOTES[legacyIndex]) {
+    return QUOTES[legacyIndex];
+  }
+  return null;
 }
 
 function quoteFontSize(quote) {
@@ -120,7 +139,7 @@ function PosterFace({ background, quote, branded, chromeFont }) {
 }
 
 function Poster() {
-  const [quoteIndex, setQuoteIndex] = useState(() => randomQuoteIndex());
+  const [quote, setQuote] = useState(() => randomQuote());
   const [bgIndex, setBgIndex] = useState(() => randomBackgroundIndex());
   // UI chrome uses Poppins (see BRAND.md). A font failure is not fatal: we
   // fall back to the system face rather than blocking startup.
@@ -168,14 +187,9 @@ function Poster() {
   useEffect(() => {
     if (!lastResponse || lastResponse === handledResponseRef.current) return;
     handledResponseRef.current = lastResponse;
-    const tappedIndex =
-      lastResponse.notification.request.content.data?.quoteIndex;
-    if (
-      typeof tappedIndex === "number" &&
-      tappedIndex >= 0 &&
-      tappedIndex < QUOTES.length
-    ) {
-      setQuoteIndex(tappedIndex);
+    const tapped = quoteFromNotification(lastResponse);
+    if (tapped) {
+      setQuote(tapped);
       setBgIndex((prev) => randomBackgroundIndex(prev));
     }
   }, [lastResponse]);
@@ -203,11 +217,10 @@ function Poster() {
   );
 
   const shuffle = useCallback(() => {
-    setQuoteIndex((prev) => randomQuoteIndex(prev));
+    setQuote((prev) => randomQuote(prev));
     setBgIndex((prev) => randomBackgroundIndex(prev));
   }, []);
 
-  const quote = QUOTES[quoteIndex];
   const background = BACKGROUNDS[bgIndex];
 
   // Shares the poster image alone — no caption, link, or other text.

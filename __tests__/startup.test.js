@@ -154,6 +154,52 @@ describe("app startup", () => {
     }
   });
 
+  // Rewriting the quote list shifts every index, so a tapped notification must
+  // resolve by text, never by a stale index.
+  describe("opening from a notification", () => {
+    function tapWith(content) {
+      const Notifications = require("expo-notifications");
+      Notifications.useLastNotificationResponse.mockReturnValue({
+        notification: { request: { content } },
+      });
+    }
+
+    afterEach(() => {
+      const Notifications = require("expo-notifications");
+      Notifications.useLastNotificationResponse.mockReturnValue(null);
+    });
+
+    it("shows the exact quote the notification carried", async () => {
+      const quote = QUOTES[7];
+      tapWith({ body: quote, data: { quoteText: quote, quoteIndex: 7 } });
+      const tree = await renderApp();
+      expect(visibleText(tree)).toContain(quote);
+    });
+
+    it("prefers the carried text over a now-stale index", async () => {
+      const carried = QUOTES[3];
+      // Index points somewhere else entirely, as it would after a rewrite.
+      tapWith({ body: carried, data: { quoteText: carried, quoteIndex: 400 } });
+      const tree = await renderApp();
+      expect(visibleText(tree)).toContain(carried);
+      expect(visibleText(tree)).not.toContain(QUOTES[400]);
+    });
+
+    it("falls back to the body when a legacy notification has no text", async () => {
+      const legacy = "A quote from a previous version of the app.";
+      tapWith({ body: legacy, data: { quoteIndex: 12 } });
+      const tree = await renderApp();
+      expect(visibleText(tree)).toContain(legacy);
+    });
+
+    it("still renders a quote when the notification carries nothing usable", async () => {
+      tapWith({ body: null, data: {} });
+      const tree = await renderApp();
+      expect(visibleText(tree).some((t) => QUOTES.includes(t))).toBe(true);
+      expectNoCrash(tree);
+    });
+  });
+
   it("pairs every background with valid gradient colors", () => {
     for (const background of BACKGROUNDS) {
       expect(background.colors.length).toBeGreaterThanOrEqual(2);

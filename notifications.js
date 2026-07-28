@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
-import { QUOTES } from "./quotes";
+import { QUOTES, QUOTES_VERSION } from "./quotes";
 
 const LAST_SCHEDULED_KEY = "sheetposo:lastScheduledDay";
 const CHANNEL_ID = "sheetposo-quotes";
@@ -76,7 +76,10 @@ async function scheduleQuoteAt(date) {
     content: {
       title: "Daily Reflection",
       body: QUOTES[quoteIndex],
-      data: { quoteIndex },
+      // Carry the text itself, not just the index: editing the quote list
+      // shifts indexes, and already-scheduled notifications would otherwise
+      // open the app on the wrong quote.
+      data: { quoteText: QUOTES[quoteIndex], quoteIndex, version: QUOTES_VERSION },
       sound: false,
     },
     trigger: {
@@ -94,7 +97,9 @@ export async function rescheduleIfNeeded() {
   if (!granted) return;
   await ensureAndroidChannel();
 
-  const today = new Date().toDateString();
+  // Keyed on the quote version too, so rewriting the list re-rolls the
+  // schedule immediately instead of leaving yesterday's quotes queued.
+  const today = `${QUOTES_VERSION}:${new Date().toDateString()}`;
   const lastScheduled = await AsyncStorage.getItem(LAST_SCHEDULED_KEY);
   if (lastScheduled === today) return;
 
