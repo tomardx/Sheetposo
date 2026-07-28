@@ -13,8 +13,14 @@ jest.mock("expo-splash-screen", () => ({
   hideAsync: jest.fn(() => Promise.resolve()),
 }));
 
+// @expo/vector-icons calls Font.isLoaded/loadAsync/renderToImageAsync, so the
+// mock must cover those too — a bare { useFonts } mock breaks the icons.
 jest.mock("expo-font", () => ({
   useFonts: jest.fn(() => [true, null]),
+  isLoaded: jest.fn(() => true),
+  loadAsync: jest.fn(() => Promise.resolve()),
+  renderToImageAsync: jest.fn(() => Promise.resolve("")),
+  processFontFamily: jest.fn((family) => family),
 }));
 
 jest.mock("expo-notifications", () => ({
@@ -32,6 +38,19 @@ jest.mock("expo-notifications", () => ({
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
   setItem: jest.fn(() => Promise.resolve()),
+}));
+
+jest.mock("react-native-view-shot", () => ({
+  captureRef: jest.fn(() => Promise.resolve("file:///tmp/poster.png")),
+}));
+
+jest.mock("expo-sharing", () => ({
+  isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+  shareAsync: jest.fn(() => Promise.resolve()),
+}));
+
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: jest.fn(() => Promise.resolve()),
 }));
 
 const BOUNDARY_FALLBACK_TEXT = "Something is resting.";
@@ -123,6 +142,99 @@ describe("app startup", () => {
         expect(color).toMatch(/^#[0-9A-Fa-f]{6}$/);
       }
     }
+  });
+});
+
+describe("sharing", () => {
+  function press(tree, testID) {
+    return act(async () => {
+      tree.root.findByProps({ testID }).props.onPress();
+    });
+  }
+
+  function currentQuote(tree) {
+    return visibleText(tree).find((text) => QUOTES.includes(text));
+  }
+
+  it("copies only the bare quote text, with no branding or link", async () => {
+    const Clipboard = require("expo-clipboard");
+    Clipboard.setStringAsync.mockClear();
+
+    const tree = await renderApp();
+    const quote = currentQuote(tree);
+    await press(tree, "copy-button");
+
+    expect(Clipboard.setStringAsync).toHaveBeenCalledTimes(1);
+    const copied = Clipboard.setStringAsync.mock.calls[0][0];
+    expect(copied).toBe(quote);
+    expect(copied).not.toMatch(/Sheetposo|https?:\/\//i);
+  });
+
+  it("confirms the copy with a calm message", async () => {
+    const tree = await renderApp();
+    await press(tree, "copy-button");
+    expect(visibleText(tree)).toContain("Copied.");
+  });
+
+  it("captures the poster and shares the image with no extra text", async () => {
+    const { captureRef } = require("react-native-view-shot");
+    const Sharing = require("expo-sharing");
+    captureRef.mockClear();
+    Sharing.shareAsync.mockClear();
+
+    const tree = await renderApp();
+    await press(tree, "share-button");
+
+    expect(captureRef).toHaveBeenCalledTimes(1);
+    expect(captureRef.mock.calls[0][1]).toMatchObject({ format: "png" });
+    expect(Sharing.shareAsync).toHaveBeenCalledWith(
+      "file:///tmp/poster.png",
+      expect.objectContaining({ mimeType: "image/png" })
+    );
+    // No caption, message, dialog title, or URL may ride along with the image.
+    const shareOptions = Sharing.shareAsync.mock.calls[0][1];
+    expect(Object.keys(shareOptions)).toEqual(["mimeType"]);
+  });
+
+  it("puts the watermark in the captured poster but never on screen", async () => {
+    const tree = await renderApp();
+    const layerText = (testID) =>
+      tree.root
+        .findByProps({ testID })
+        .findAllByType("Text")
+        .flatMap((node) => node.props.children)
+        .filter((child) => typeof child === "string");
+
+    // The branding rides along only in the image that gets shared.
+    expect(layerText("capture-layer")).toContain("Sheetposo");
+    expect(layerText("visible-layer")).not.toContain("Sheetposo");
+    // Both layers still show the same quote, so the capture matches the screen.
+    const quoteOf = (id) => layerText(id).find((text) => QUOTES.includes(text));
+    expect(quoteOf("capture-layer")).toBe(quoteOf("visible-layer"));
+  });
+
+  it("reports a failed share instead of crashing", async () => {
+    const { captureRef } = require("react-native-view-shot");
+    captureRef.mockRejectedValueOnce(new Error("capture failed"));
+
+    const tree = await renderApp();
+    await press(tree, "share-button");
+
+    expect(visibleText(tree)).toContain("Couldn't share.");
+    expectNoCrash(tree);
+  });
+
+  it("reports when sharing is unavailable on the device", async () => {
+    const Sharing = require("expo-sharing");
+    Sharing.isAvailableAsync.mockResolvedValueOnce(false);
+    Sharing.shareAsync.mockClear();
+
+    const tree = await renderApp();
+    await press(tree, "share-button");
+
+    expect(Sharing.shareAsync).not.toHaveBeenCalled();
+    expect(visibleText(tree)).toContain("Sharing unavailable.");
+    expectNoCrash(tree);
   });
 });
 

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -10,6 +12,12 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
+import * as Sharing from "expo-sharing";
+import * as Clipboard from "expo-clipboard";
+import { captureRef } from "react-native-view-shot";
+// Subpath default export: bundles only Feather.ttf instead of all 20 icon
+// fonts. Verified this subpath exports Feather as the default, not a named.
+import Feather from "@expo/vector-icons/Feather";
 // useFonts comes from expo-font: the @expo-google-fonts subpath exports only
 // the font constant, so importing useFonts from it yields undefined.
 import { useFonts } from "expo-font";
@@ -33,6 +41,10 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Backstop so a stalled font load can never strand the app on the splash.
 const SPLASH_TIMEOUT_MS = 5000;
+const TOAST_VISIBLE_MS = 1500;
+
+// Transparent lotus layer, reused as the share watermark.
+const LOTUS_MARK = require("./assets/adaptive-icon.png");
 
 function randomQuoteIndex(excludeIndex = -1) {
   let idx;
@@ -75,6 +87,41 @@ function BackgroundShapes({ shapes }) {
   ));
 }
 
+// The poster itself: background + quote, with nothing interactive. Rendered
+// twice — once visibly, once as the capture source with branding attached.
+function PosterFace({ background, quote, branded, chromeFont }) {
+  return (
+    <View style={styles.face}>
+      <LinearGradient
+        colors={background.colors}
+        start={background.start}
+        end={background.end}
+        style={StyleSheet.absoluteFill}
+      />
+      <BackgroundShapes shapes={background.shapes} />
+      <View style={styles.content}>
+        <Text style={[styles.quote, { fontSize: quoteFontSize(quote) }]}>
+          {quote}
+        </Text>
+      </View>
+      {branded && (
+        <View style={styles.watermark}>
+          {/* The source PNG is mostly transparent padding, so clip to the
+              petals instead of leaving a large gap above the wordmark. */}
+          <View style={styles.watermarkLotusClip}>
+            <Image
+              source={LOTUS_MARK}
+              style={styles.watermarkLotus}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={[styles.watermarkText, chromeFont]}>Sheetposo</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function Poster() {
   const [quoteIndex, setQuoteIndex] = useState(() => randomQuoteIndex());
   const [bgIndex, setBgIndex] = useState(() => randomBackgroundIndex());
@@ -87,11 +134,18 @@ function Poster() {
   const chromeFont = fontsLoaded ? { fontFamily: "Poppins_500Medium" } : null;
   const handledResponseRef = useRef(null);
   const lastResponse = Notifications.useLastNotificationResponse();
+  const captureRefTarget = useRef(null);
+
+  const [toastMessage, setToastMessage] = useState(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setSplashTimedOut(true), SPLASH_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
 
   useEffect(() => {
     if (fontError) {
@@ -129,6 +183,28 @@ function Poster() {
     }
   }, [lastResponse]);
 
+  const showToast = useCallback(
+    (message) => {
+      clearTimeout(toastTimer.current);
+      setToastMessage(message);
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+      toastTimer.current = setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 320,
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          if (finished) setToastMessage(null);
+        });
+      }, TOAST_VISIBLE_MS);
+    },
+    [toastOpacity]
+  );
+
   const shuffle = useCallback(() => {
     setQuoteIndex((prev) => randomQuoteIndex(prev));
     setBgIndex((prev) => randomBackgroundIndex(prev));
@@ -137,27 +213,77 @@ function Poster() {
   const quote = QUOTES[quoteIndex];
   const background = BACKGROUNDS[bgIndex];
 
+  // Shares the poster image alone — no caption, link, or other text.
+  const shareImage = useCallback(async () => {
+    try {
+      const uri = await captureRef(captureRefTarget, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+      if (!(await Sharing.isAvailableAsync())) {
+        showToast("Sharing unavailable.");
+        return;
+      }
+      await Sharing.shareAsync(uri, { mimeType: "image/png" });
+    } catch (error) {
+      console.warn("Share failed:", error);
+      showToast("Couldn't share.");
+    }
+  }, [showToast]);
+
+  // Copies the bare quote — no branding, no link.
+  const copyQuote = useCallback(async () => {
+    try {
+      await Clipboard.setStringAsync(quote);
+      showToast("Copied.");
+    } catch (error) {
+      console.warn("Copy failed:", error);
+      showToast("Couldn't copy.");
+    }
+  }, [quote, showToast]);
+
   // Keep the splash up rather than flashing an unstyled first frame.
   if (!startupDone) return <View style={styles.root} />;
 
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <LinearGradient
-        colors={background.colors}
-        start={background.start}
-        end={background.end}
+      {/* Capture source. Sits behind the visible poster, which covers it
+          completely, so the watermark never appears on screen — and the
+          capture needs no flicker-inducing state toggle. */}
+      <View
+        ref={captureRefTarget}
+        collapsable={false}
+        pointerEvents="none"
+        testID="capture-layer"
         style={StyleSheet.absoluteFill}
-      />
-      <BackgroundShapes shapes={background.shapes} />
-      <View style={styles.content}>
-        <Text style={[styles.quote, { fontSize: quoteFontSize(quote) }]}>
-          {quote}
-        </Text>
+      >
+        <PosterFace
+          background={background}
+          quote={quote}
+          chromeFont={chromeFont}
+          branded
+        />
       </View>
-      <View style={styles.footer}>
+
+      <View testID="visible-layer" style={StyleSheet.absoluteFill}>
+        <PosterFace background={background} quote={quote} />
+      </View>
+
+      <View style={styles.footer} pointerEvents="box-none">
+        {toastMessage && (
+          <Animated.View
+            style={[styles.toast, { opacity: toastOpacity }]}
+            pointerEvents="none"
+          >
+            <Text style={[styles.toastText, chromeFont]}>{toastMessage}</Text>
+          </Animated.View>
+        )}
         <Pressable
           onPress={shuffle}
+          accessibilityRole="button"
+          accessibilityLabel="Shuffle quote"
           style={({ pressed }) => [
             styles.shuffleButton,
             pressed && styles.shuffleButtonPressed,
@@ -165,6 +291,32 @@ function Poster() {
         >
           <Text style={[styles.shuffleText, chromeFont]}>🔀 Shuffle</Text>
         </Pressable>
+        <View style={styles.actionRow}>
+          <Pressable
+            onPress={shareImage}
+            accessibilityRole="button"
+            accessibilityLabel="Share as image"
+            testID="share-button"
+            style={({ pressed }) => [
+              styles.iconButton,
+              pressed && styles.iconButtonPressed,
+            ]}
+          >
+            <Feather name="share-2" size={19} color={BRAND.cream} />
+          </Pressable>
+          <Pressable
+            onPress={copyQuote}
+            accessibilityRole="button"
+            accessibilityLabel="Copy quote text"
+            testID="copy-button"
+            style={({ pressed }) => [
+              styles.iconButton,
+              pressed && styles.iconButtonPressed,
+            ]}
+          >
+            <Feather name="copy" size={19} color={BRAND.cream} />
+          </Pressable>
+        </View>
         <Text style={[styles.brand, chromeFont]}>SHEETPOSO</Text>
       </View>
     </View>
@@ -184,6 +336,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BRAND.sage,
   },
+  face: {
+    flex: 1,
+  },
   content: {
     flex: 1,
     justifyContent: "center",
@@ -200,10 +355,54 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 10,
   },
-  footer: {
+  watermark: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 54,
     alignItems: "center",
-    paddingBottom: 48,
+  },
+  watermarkLotusClip: {
+    width: 38,
+    height: 28,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    opacity: 0.9,
+  },
+  watermarkLotus: {
+    width: 96,
+    height: 96,
+  },
+  watermarkText: {
+    marginTop: 7,
+    color: BRAND.sand,
+    opacity: 0.85,
+    fontSize: 13,
+    letterSpacing: 3,
+  },
+  footer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    paddingBottom: 44,
     gap: 14,
+  },
+  toast: {
+    position: "absolute",
+    bottom: "100%",
+    marginBottom: 18,
+    backgroundColor: "rgba(60, 70, 55, 0.82)",
+    borderRadius: 999,
+    paddingVertical: 9,
+    paddingHorizontal: 22,
+  },
+  toastText: {
+    color: BRAND.cream,
+    fontSize: 14,
+    letterSpacing: 1.5,
   },
   shuffleButton: {
     backgroundColor: "rgba(110, 127, 104, 0.5)",
@@ -220,6 +419,23 @@ const styles = StyleSheet.create({
     color: BRAND.cream,
     fontSize: 17,
     letterSpacing: 2,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 14,
+  },
+  iconButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(110, 127, 104, 0.4)",
+    borderColor: "rgba(247, 243, 234, 0.45)",
+    borderWidth: 1.5,
+  },
+  iconButtonPressed: {
+    backgroundColor: BRAND.sageDeep,
   },
   brand: {
     color: "rgba(247, 243, 234, 0.6)",
