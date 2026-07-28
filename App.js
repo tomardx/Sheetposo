@@ -15,9 +15,6 @@ import * as SplashScreen from "expo-splash-screen";
 import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
 import { captureRef } from "react-native-view-shot";
-// Subpath default export: bundles only Feather.ttf instead of all 20 icon
-// fonts. Verified this subpath exports Feather as the default, not a named.
-import Feather from "@expo/vector-icons/Feather";
 // useFonts comes from expo-font: the @expo-google-fonts subpath exports only
 // the font constant, so importing useFonts from it yields undefined.
 import { useFonts } from "expo-font";
@@ -284,13 +281,18 @@ function Poster() {
           onPress={shuffle}
           accessibilityRole="button"
           accessibilityLabel="Shuffle quote"
+          testID="shuffle-button"
           style={({ pressed }) => [
+            styles.pill,
             styles.shuffleButton,
-            pressed && styles.shuffleButtonPressed,
+            pressed && styles.pillPressed,
           ]}
         >
-          <Text style={[styles.shuffleText, chromeFont]}>🔀 Shuffle</Text>
+          <Text style={[styles.pillText, styles.shuffleText, chromeFont]}>
+            Shuffle
+          </Text>
         </Pressable>
+        {/* Text-only labels: no icon font to fail to load. */}
         <View style={styles.actionRow}>
           <Pressable
             onPress={shareImage}
@@ -298,11 +300,12 @@ function Poster() {
             accessibilityLabel="Share as image"
             testID="share-button"
             style={({ pressed }) => [
-              styles.iconButton,
-              pressed && styles.iconButtonPressed,
+              styles.pill,
+              styles.actionButton,
+              pressed && styles.pillPressed,
             ]}
           >
-            <Feather name="share-2" size={19} color={BRAND.cream} />
+            <Text style={[styles.pillText, chromeFont]}>Share</Text>
           </Pressable>
           <Pressable
             onPress={copyQuote}
@@ -310,11 +313,12 @@ function Poster() {
             accessibilityLabel="Copy quote text"
             testID="copy-button"
             style={({ pressed }) => [
-              styles.iconButton,
-              pressed && styles.iconButtonPressed,
+              styles.pill,
+              styles.actionButton,
+              pressed && styles.pillPressed,
             ]}
           >
-            <Feather name="copy" size={19} color={BRAND.cream} />
+            <Text style={[styles.pillText, chromeFont]}>Copy</Text>
           </Pressable>
         </View>
         <Text style={[styles.brand, chromeFont]}>SHEETPOSO</Text>
@@ -404,38 +408,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 1.5,
   },
-  shuffleButton: {
+  // Shared pill shape so Shuffle, Share, and Copy read as one family.
+  pill: {
     backgroundColor: "rgba(110, 127, 104, 0.5)",
     borderColor: "rgba(247, 243, 234, 0.7)",
     borderWidth: 1.5,
     borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillPressed: {
+    backgroundColor: BRAND.sageDeep,
+  },
+  pillText: {
+    color: BRAND.cream,
+    fontSize: 15,
+    letterSpacing: 2,
+  },
+  // Shuffle stays the primary action: larger type and a wider tap target.
+  shuffleButton: {
     paddingVertical: 14,
     paddingHorizontal: 34,
   },
-  shuffleButtonPressed: {
-    backgroundColor: BRAND.sageDeep,
-  },
   shuffleText: {
-    color: BRAND.cream,
     fontSize: 17,
-    letterSpacing: 2,
   },
   actionRow: {
     flexDirection: "row",
-    gap: 14,
+    gap: 12,
   },
-  iconButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(110, 127, 104, 0.4)",
-    borderColor: "rgba(247, 243, 234, 0.45)",
-    borderWidth: 1.5,
-  },
-  iconButtonPressed: {
-    backgroundColor: BRAND.sageDeep,
+  actionButton: {
+    paddingVertical: 11,
+    paddingHorizontal: 26,
   },
   brand: {
     color: "rgba(247, 243, 234, 0.6)",

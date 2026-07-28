@@ -13,14 +13,8 @@ jest.mock("expo-splash-screen", () => ({
   hideAsync: jest.fn(() => Promise.resolve()),
 }));
 
-// @expo/vector-icons calls Font.isLoaded/loadAsync/renderToImageAsync, so the
-// mock must cover those too — a bare { useFonts } mock breaks the icons.
 jest.mock("expo-font", () => ({
   useFonts: jest.fn(() => [true, null]),
-  isLoaded: jest.fn(() => true),
-  loadAsync: jest.fn(() => Promise.resolve()),
-  renderToImageAsync: jest.fn(() => Promise.resolve("")),
-  processFontFamily: jest.fn((family) => family),
 }));
 
 jest.mock("expo-notifications", () => ({
@@ -133,6 +127,31 @@ describe("app startup", () => {
     const tree = await renderApp();
     expect(visibleText(tree).some((text) => QUOTES.includes(text))).toBe(true);
     expectNoCrash(tree);
+  });
+
+  // Regression guard: the action row shipped in App.js but was missing from a
+  // build, so assert all three controls are really mounted and labelled.
+  it("mounts Shuffle, Share, and Copy as visible text buttons", async () => {
+    const tree = await renderApp();
+    const footerText = visibleText(tree);
+    for (const label of ["Shuffle", "Share", "Copy"]) {
+      expect(footerText).toContain(label);
+    }
+    for (const testID of ["shuffle-button", "share-button", "copy-button"]) {
+      expect(tree.root.findByProps({ testID })).toBeTruthy();
+    }
+  });
+
+  it("renders the buttons with no icon glyphs", async () => {
+    const tree = await renderApp();
+    // No icon font means no glyph can silently fail to render.
+    expect(tree.root.findAllByType("Image")).toHaveLength(1); // watermark only
+    const labels = ["Shuffle", "Share", "Copy"];
+    for (const label of labels) {
+      expect(visibleText(tree)).toContain(label);
+      expect(visibleText(tree).some((t) => t !== label && t.includes(label)))
+        .toBe(false);
+    }
   });
 
   it("pairs every background with valid gradient colors", () => {
