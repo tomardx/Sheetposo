@@ -540,7 +540,7 @@ export const QUOTES = [
   "nobody's perfect, and the ones who look it are running a very expensive operation.",
   "comparison is the thief of joy and the landlord of everything else.",
   "you're not competing with anyone, which is convenient, because you'd lose.",
-  "run your own race, at your own pace, in your own direction, away from the race.",
+  "run your own race, at your own pace, in your own direction, away from my face.",
   "the only person you should compare yourself to is yesterday's you, who was also having a nightmare.",
   "beat your personal best, or match it, or acknowledge it politely from a distance.",
   "every day above ground is a good day, said a man with a very low bar and a shovel.",
