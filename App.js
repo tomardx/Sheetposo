@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
+  Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -26,6 +28,11 @@ import {
   rescheduleIfNeeded,
 } from "./notifications";
 import ErrorBoundary, { installGlobalErrorHandler } from "./ErrorBoundary";
+import {
+  loadSeenQuotes,
+  presentedQuotes,
+  saveSeenQuotes,
+} from "./seenQuotes";
 
 // Both are synchronous, JS-only registrations: safe at module scope.
 installGlobalErrorHandler();
@@ -155,6 +162,11 @@ function Poster() {
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTimer = useRef(null);
 
+  // History of quotes actually shown to this user. The rest stay hidden.
+  const [seen, setSeen] = useState([]);
+  const [seenLoaded, setSeenLoaded] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
   useEffect(() => {
     const timer = setTimeout(() => setSplashTimedOut(true), SPLASH_TIMEOUT_MS);
     return () => clearTimeout(timer);
@@ -173,6 +185,39 @@ function Poster() {
     if (!startupDone) return;
     SplashScreen.hideAsync().catch(() => {});
   }, [startupDone]);
+
+  // Load the stored history, plus anything sitting in the notification tray.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([loadSeenQuotes(), presentedQuotes()])
+      .then(([stored, tray]) => {
+        if (cancelled) return;
+        const merged = [...stored];
+        for (const entry of tray) {
+          if (!merged.includes(entry)) merged.push(entry);
+        }
+        setSeen(merged);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setSeenLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Record whatever is on screen, but only once the stored history has loaded,
+  // so the first render cannot overwrite it with a single entry.
+  useEffect(() => {
+    if (!seenLoaded || !quote) return;
+    setSeen((prev) => (prev.includes(quote) ? prev : [...prev, quote]));
+  }, [quote, seenLoaded]);
+
+  useEffect(() => {
+    if (!seenLoaded) return;
+    saveSeenQuotes(seen);
+  }, [seen, seenLoaded]);
 
   // Runs after mount, so permissions and channel setup never block first paint.
   useEffect(() => {
@@ -308,10 +353,101 @@ function Poster() {
           >
             <Text style={[styles.pillText, chromeFont]}>Share</Text>
           </Pressable>
+          <Pressable
+            onPress={() => setHistoryOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Previously seen quotes"
+            testID="seen-button"
+            style={({ pressed }) => [
+              styles.pill,
+              styles.actionButton,
+              pressed && styles.pillPressed,
+            ]}
+          >
+            <Text style={[styles.pillText, chromeFont]}>Seen</Text>
+          </Pressable>
         </View>
         <Text style={[styles.brand, chromeFont]}>SHEETPOSO</Text>
       </View>
+
+      <SeenSheet
+        visible={historyOpen}
+        seen={seen}
+        chromeFont={chromeFont}
+        onClose={() => setHistoryOpen(false)}
+        onPick={(picked) => {
+          setQuote(picked);
+          setBgIndex((prev) => randomBackgroundIndex(prev));
+          setHistoryOpen(false);
+        }}
+      />
     </View>
+  );
+}
+
+// Shows only what this user has actually been shown. The rest of the list is
+// deliberately not reachable from here — unseen quotes stay a surprise.
+function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
+  // Most recent first: the one they just read is the one they want.
+  const ordered = [...seen].reverse();
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+      testID="seen-sheet"
+    >
+      <View style={styles.sheetBackdrop}>
+        <View style={styles.sheet}>
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sheetTitle, chromeFont]}>seen so far</Text>
+            <Text style={[styles.sheetCount, chromeFont]}>
+              {`${ordered.length} of ${QUOTES.length}`}
+            </Text>
+          </View>
+
+          {ordered.length === 0 ? (
+            <Text style={[styles.sheetEmpty, chromeFont]}>
+              nothing yet. the rest are a surprise.
+            </Text>
+          ) : (
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetScrollContent}
+            >
+              {ordered.map((entry, i) => (
+                <Pressable
+                  key={`${i}-${entry}`}
+                  onPress={() => onPick(entry)}
+                  style={({ pressed }) => [
+                    styles.seenRow,
+                    pressed && styles.seenRowPressed,
+                  ]}
+                >
+                  <Text style={styles.seenText}>{entry}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            testID="seen-close"
+            style={({ pressed }) => [
+              styles.pill,
+              styles.actionButton,
+              styles.sheetClose,
+              pressed && styles.pillPressed,
+            ]}
+          >
+            <Text style={[styles.pillText, chromeFont]}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -434,5 +570,68 @@ const styles = StyleSheet.create({
     color: "rgba(247, 243, 234, 0.6)",
     fontSize: 12,
     letterSpacing: 4,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(40, 48, 38, 0.55)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: BRAND.sage,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 26,
+    paddingBottom: 34,
+    maxHeight: "82%",
+  },
+  sheetHeader: {
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 18,
+  },
+  sheetTitle: {
+    color: BRAND.cream,
+    fontSize: 19,
+    letterSpacing: 2,
+  },
+  sheetCount: {
+    color: BRAND.sand,
+    fontSize: 12,
+    letterSpacing: 2,
+    opacity: 0.9,
+  },
+  sheetEmpty: {
+    color: BRAND.sand,
+    fontSize: 14,
+    textAlign: "center",
+    paddingVertical: 42,
+    lineHeight: 22,
+  },
+  sheetScroll: {
+    flexGrow: 0,
+  },
+  sheetScrollContent: {
+    paddingBottom: 8,
+    gap: 8,
+  },
+  seenRow: {
+    backgroundColor: "rgba(110, 127, 104, 0.45)",
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  seenRowPressed: {
+    backgroundColor: BRAND.sageDeep,
+  },
+  seenText: {
+    color: BRAND.cream,
+    fontSize: 14,
+    lineHeight: 20,
+    textTransform: "lowercase",
+  },
+  sheetClose: {
+    alignSelf: "center",
+    marginTop: 18,
   },
 });

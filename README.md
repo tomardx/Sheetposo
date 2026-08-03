@@ -10,7 +10,12 @@ background. Fully local and offline — no backend, no accounts, no analytics.
 - **One screen**: the poster. A quote in big impact-style text over a
   procedurally generated gradient/shape background. The 🔀 Shuffle button picks
   a new random quote + background pairing.
-- **Sharing**: two icon buttons under Shuffle. Share renders the poster to a
+- **Seen**: a button opening a sheet listing only the quotes this user has
+  actually been shown — on the poster, or delivered to the notification tray.
+  The rest of the list is deliberately unreachable from the UI; unseen quotes
+  stay a surprise. History is stored as text (not indexes) in AsyncStorage, so
+  it survives edits to the quote list.
+- **Sharing**: buttons under Shuffle. Share renders the poster to a
   PNG via `react-native-view-shot` and opens the native share sheet — image
   only, no caption or link. Copy puts the bare quote text on the clipboard.
   The poster is rendered twice: a branded capture layer sits behind the

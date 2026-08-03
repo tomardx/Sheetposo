@@ -34,6 +34,12 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
   setItem: jest.fn(() => Promise.resolve()),
 }));
 
+jest.mock("./../seenQuotes", () => ({
+  loadSeenQuotes: jest.fn(() => Promise.resolve([])),
+  saveSeenQuotes: jest.fn(() => Promise.resolve()),
+  presentedQuotes: jest.fn(() => Promise.resolve([])),
+}));
+
 jest.mock("react-native-view-shot", () => ({
   captureRef: jest.fn(() => Promise.resolve("file:///tmp/poster.png")),
 }));
@@ -288,6 +294,120 @@ describe("sharing", () => {
     expect(Sharing.shareAsync).not.toHaveBeenCalled();
     expect(visibleText(tree)).toContain("Sharing unavailable.");
     expectNoCrash(tree);
+  });
+});
+
+describe("previously seen", () => {
+  const seenStore = require("./../seenQuotes");
+
+  function press(tree, testID) {
+    return act(async () => {
+      tree.root.findByProps({ testID }).props.onPress();
+    });
+  }
+
+  beforeEach(() => {
+    seenStore.loadSeenQuotes.mockResolvedValue([]);
+    seenStore.presentedQuotes.mockResolvedValue([]);
+    seenStore.saveSeenQuotes.mockClear();
+  });
+
+  it("lists only stored quotes, never the unseen ones", async () => {
+    const stored = [QUOTES[2], QUOTES[5]];
+    seenStore.loadSeenQuotes.mockResolvedValue(stored);
+
+    const tree = await renderApp();
+    await press(tree, "seen-button");
+
+    const sheetText = tree.root
+      .findByProps({ testID: "seen-sheet" })
+      .findAllByType("Text")
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string");
+
+    for (const entry of stored) expect(sheetText).toContain(entry);
+    // Everything else in the list must stay hidden. The poster's own quote is
+    // legitimately seen, so allow it — but read it from the poster subtree
+    // only. Scanning the whole tree would include the sheet itself, and any
+    // leak would then excuse itself.
+    const onScreen = tree.root
+      .findByProps({ testID: "visible-layer" })
+      .findAllByType("Text")
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string" && QUOTES.includes(child));
+    const allowed = new Set([...stored, ...onScreen]);
+    const leaked = QUOTES.filter(
+      (q) => !allowed.has(q) && sheetText.includes(q)
+    );
+    expect(leaked).toEqual([]);
+  });
+
+  it("counts what has been seen against the full list", async () => {
+    seenStore.loadSeenQuotes.mockResolvedValue([QUOTES[1], QUOTES[4]]);
+    const tree = await renderApp();
+    await press(tree, "seen-button");
+    const sheetText = tree.root
+      .findByProps({ testID: "seen-sheet" })
+      .findAllByType("Text")
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string");
+    // Two stored plus the quote currently on the poster.
+    expect(sheetText).toContain(`3 of ${QUOTES.length}`);
+  });
+
+  it("counts the on-screen quote as seen on a fresh install", async () => {
+    const tree = await renderApp();
+    await press(tree, "seen-button");
+    const sheetText = tree.root
+      .findByProps({ testID: "seen-sheet" })
+      .findAllByType("Text")
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string");
+    // The displayed quote counts as seen, so the list is never truly empty.
+    expect(sheetText).toContain(`1 of ${QUOTES.length}`);
+  });
+
+  it("records the displayed quote and persists it", async () => {
+    const tree = await renderApp();
+    const shown = visibleText(tree).find((t) => QUOTES.includes(t));
+    expect(seenStore.saveSeenQuotes).toHaveBeenCalled();
+    const lastSaved = seenStore.saveSeenQuotes.mock.calls.at(-1)[0];
+    expect(lastSaved).toContain(shown);
+  });
+
+  it("counts quotes delivered to the notification tray", async () => {
+    const trayQuote = QUOTES[9];
+    seenStore.presentedQuotes.mockResolvedValue([trayQuote]);
+
+    const tree = await renderApp();
+    await press(tree, "seen-button");
+    const sheetText = tree.root
+      .findByProps({ testID: "seen-sheet" })
+      .findAllByType("Text")
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string");
+    expect(sheetText).toContain(trayQuote);
+  });
+
+  it("does not overwrite stored history with the first render", async () => {
+    const stored = [QUOTES[11], QUOTES[12], QUOTES[13]];
+    seenStore.loadSeenQuotes.mockResolvedValue(stored);
+
+    await renderApp();
+    const lastSaved = seenStore.saveSeenQuotes.mock.calls.at(-1)[0];
+    for (const entry of stored) expect(lastSaved).toContain(entry);
+  });
+
+  it("closes the sheet again", async () => {
+    const tree = await renderApp();
+    await press(tree, "seen-button");
+    expect(
+      tree.root.findByProps({ testID: "seen-sheet" }).props.visible
+    ).toBe(true);
+    await press(tree, "seen-close");
+    expect(
+      tree.root.findByProps({ testID: "seen-sheet" }).props.visible
+    ).toBe(false);
   });
 });
 
