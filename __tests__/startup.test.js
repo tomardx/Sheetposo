@@ -2,7 +2,7 @@
 // bundle check cannot do: a missing named export is `undefined` at runtime and
 // bundles cleanly, but throws the moment it is called.
 import renderer, { act } from "react-test-renderer";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import App from "../App";
 import ErrorBoundary from "../ErrorBoundary";
 import { QUOTES } from "../quotes";
@@ -43,9 +43,6 @@ jest.mock("expo-sharing", () => ({
   shareAsync: jest.fn(() => Promise.resolve()),
 }));
 
-jest.mock("expo-clipboard", () => ({
-  setStringAsync: jest.fn(() => Promise.resolve()),
-}));
 
 const BOUNDARY_FALLBACK_TEXT = "Something is resting.";
 
@@ -130,28 +127,43 @@ describe("app startup", () => {
   });
 
   // Regression guard: the action row shipped in App.js but was missing from a
-  // build, so assert all three controls are really mounted and labelled.
-  it("mounts Shuffle, Share, and Copy as visible text buttons", async () => {
+  // build, so assert the controls are really mounted and labelled.
+  it("mounts Shuffle and Share as visible text buttons", async () => {
     const tree = await renderApp();
     const footerText = visibleText(tree);
-    for (const label of ["Shuffle", "Share", "Copy"]) {
+    for (const label of ["Shuffle", "Share"]) {
       expect(footerText).toContain(label);
     }
-    for (const testID of ["shuffle-button", "share-button", "copy-button"]) {
+    for (const testID of ["shuffle-button", "share-button"]) {
       expect(tree.root.findByProps({ testID })).toBeTruthy();
     }
+  });
+
+  it("has no Copy button left anywhere", async () => {
+    const tree = await renderApp();
+    expect(visibleText(tree)).not.toContain("Copy");
+    expect(tree.root.findAllByProps({ testID: "copy-button" })).toHaveLength(0);
   });
 
   it("renders the buttons with no icon glyphs", async () => {
     const tree = await renderApp();
     // No icon font means no glyph can silently fail to render.
     expect(tree.root.findAllByType("Image")).toHaveLength(1); // watermark only
-    const labels = ["Shuffle", "Share", "Copy"];
-    for (const label of labels) {
+    for (const label of ["Shuffle", "Share"]) {
       expect(visibleText(tree)).toContain(label);
-      expect(visibleText(tree).some((t) => t !== label && t.includes(label)))
-        .toBe(false);
+      expect(
+        visibleText(tree).some((t) => t !== label && t.includes(label))
+      ).toBe(false);
     }
+  });
+
+  it("renders the quote lowercased rather than shouted", async () => {
+    const tree = await renderApp();
+    const quoteNode = tree.root
+      .findAllByType("Text")
+      .find((node) => QUOTES.includes(node.props.children));
+    const style = StyleSheet.flatten(quoteNode.props.style);
+    expect(style.textTransform).toBe("lowercase");
   });
 
   // Rewriting the quote list shifts every index, so a tapped notification must
@@ -217,30 +229,6 @@ describe("sharing", () => {
     });
   }
 
-  function currentQuote(tree) {
-    return visibleText(tree).find((text) => QUOTES.includes(text));
-  }
-
-  it("copies only the bare quote text, with no branding or link", async () => {
-    const Clipboard = require("expo-clipboard");
-    Clipboard.setStringAsync.mockClear();
-
-    const tree = await renderApp();
-    const quote = currentQuote(tree);
-    await press(tree, "copy-button");
-
-    expect(Clipboard.setStringAsync).toHaveBeenCalledTimes(1);
-    const copied = Clipboard.setStringAsync.mock.calls[0][0];
-    expect(copied).toBe(quote);
-    expect(copied).not.toMatch(/Sheetposo|https?:\/\//i);
-  });
-
-  it("confirms the copy with a calm message", async () => {
-    const tree = await renderApp();
-    await press(tree, "copy-button");
-    expect(visibleText(tree)).toContain("Copied.");
-  });
-
   it("captures the poster and shares the image with no extra text", async () => {
     const { captureRef } = require("react-native-view-shot");
     const Sharing = require("expo-sharing");
@@ -300,6 +288,83 @@ describe("sharing", () => {
     expect(Sharing.shareAsync).not.toHaveBeenCalled();
     expect(visibleText(tree)).toContain("Sharing unavailable.");
     expectNoCrash(tree);
+  });
+});
+
+// The reported bug was notifications arriving 2-3 at a time. One cause was
+// Android batching inexact alarms; the other was here, in the time picking.
+describe("notification scheduling", () => {
+  const { randomTimesForDay } = require("../notifications");
+  const MIN_GAP_MS = 25 * 60 * 1000;
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function atClock(hour, minute = 0) {
+    const when = new Date();
+    when.setHours(hour, minute, 0, 0);
+    jest.useFakeTimers({
+      now: when,
+      doNotFake: ["nextTick", "setImmediate"],
+    });
+  }
+
+  it("never books two quotes within half an hour of each other", () => {
+    atClock(8);
+    for (let run = 0; run < 200; run++) {
+      for (const dayOffset of [0, 1, 3]) {
+        const times = randomTimesForDay(dayOffset).map((d) => d.getTime());
+        for (let i = 1; i < times.length; i++) {
+          // A little under the nominal gap: slot jitter can tighten it slightly.
+          expect(times[i] - times[i - 1]).toBeGreaterThan(MIN_GAP_MS * 0.4);
+        }
+      }
+    }
+  });
+
+  it("keeps a full day inside the 8am-11pm window", () => {
+    atClock(9);
+    for (let run = 0; run < 100; run++) {
+      for (const when of randomTimesForDay(2)) {
+        expect(when.getHours()).toBeGreaterThanOrEqual(8);
+        expect(when.getHours()).toBeLessThan(23);
+      }
+    }
+  });
+
+  it("never schedules in the past", () => {
+    atClock(14, 30);
+    for (let run = 0; run < 100; run++) {
+      for (const when of randomTimesForDay(0)) {
+        expect(when.getTime()).toBeGreaterThan(Date.now());
+      }
+    }
+  });
+
+  it("thins out the count when the app opens late, instead of cramming", () => {
+    atClock(21, 30);
+    const lateCounts = [];
+    for (let run = 0; run < 100; run++) {
+      lateCounts.push(randomTimesForDay(0).length);
+    }
+    // 90 minutes left can hold at most a few, spaced out.
+    expect(Math.max(...lateCounts)).toBeLessThanOrEqual(3);
+  });
+
+  it("schedules nothing once the window has closed", () => {
+    atClock(23, 30);
+    expect(randomTimesForDay(0)).toHaveLength(0);
+  });
+
+  it("still fills a normal day with several quotes", () => {
+    atClock(8);
+    const counts = [];
+    for (let run = 0; run < 100; run++) {
+      counts.push(randomTimesForDay(1).length);
+    }
+    expect(Math.min(...counts)).toBeGreaterThanOrEqual(3);
+    expect(Math.max(...counts)).toBeLessThanOrEqual(8);
   });
 });
 

@@ -15,13 +15,24 @@
     "backgroundColor": "#8A9A83",
     "android": {
       "package": "com.tomardx.sheetposo",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#8A9A83"
       }
     },
     "plugins": [
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/bleep.wav"]
+        }
+      ],
       [
         "expo-splash-screen",
         {

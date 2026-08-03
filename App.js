@@ -13,7 +13,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import * as Sharing from "expo-sharing";
-import * as Clipboard from "expo-clipboard";
 import { captureRef } from "react-native-view-shot";
 // useFonts comes from expo-font: the @expo-google-fonts subpath exports only
 // the font constant, so importing useFonts from it yields undefined.
@@ -242,17 +241,6 @@ function Poster() {
     }
   }, [showToast]);
 
-  // Copies the bare quote — no branding, no link.
-  const copyQuote = useCallback(async () => {
-    try {
-      await Clipboard.setStringAsync(quote);
-      showToast("Copied.");
-    } catch (error) {
-      console.warn("Copy failed:", error);
-      showToast("Couldn't copy.");
-    }
-  }, [quote, showToast]);
-
   // Keep the splash up rather than flashing an unstyled first frame.
   if (!startupDone) return <View style={styles.root} />;
 
@@ -305,7 +293,7 @@ function Poster() {
             Shuffle
           </Text>
         </Pressable>
-        {/* Text-only labels: no icon font to fail to load. */}
+        {/* Text-only label: no icon font to fail to load. */}
         <View style={styles.actionRow}>
           <Pressable
             onPress={shareImage}
@@ -319,19 +307,6 @@ function Poster() {
             ]}
           >
             <Text style={[styles.pillText, chromeFont]}>Share</Text>
-          </Pressable>
-          <Pressable
-            onPress={copyQuote}
-            accessibilityRole="button"
-            accessibilityLabel="Copy quote text"
-            testID="copy-button"
-            style={({ pressed }) => [
-              styles.pill,
-              styles.actionButton,
-              pressed && styles.pillPressed,
-            ]}
-          >
-            <Text style={[styles.pillText, chromeFont]}>Copy</Text>
           </Pressable>
         </View>
         <Text style={[styles.brand, chromeFont]}>SHEETPOSO</Text>
@@ -366,7 +341,8 @@ const styles = StyleSheet.create({
     color: BRAND.cream,
     fontWeight: "900",
     textAlign: "center",
-    textTransform: "uppercase",
+    // Lowercased on purpose: reads casual rather than dramatic.
+    textTransform: "lowercase",
     letterSpacing: 1,
     textShadowColor: "rgba(60, 70, 55, 0.45)",
     textShadowOffset: { width: 0, height: 3 },
