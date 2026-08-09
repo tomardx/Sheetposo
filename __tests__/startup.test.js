@@ -343,7 +343,8 @@ describe("previously seen", () => {
   });
 
   it("counts what has been seen against the full list", async () => {
-    seenStore.loadSeenQuotes.mockResolvedValue([QUOTES[1], QUOTES[4]]);
+    const stored = [QUOTES[1], QUOTES[4]];
+    seenStore.loadSeenQuotes.mockResolvedValue(stored);
     const tree = await renderApp();
     await press(tree, "seen-button");
     const sheetText = tree.root
@@ -351,8 +352,15 @@ describe("previously seen", () => {
       .findAllByType("Text")
       .flatMap((node) => node.props.children)
       .filter((child) => typeof child === "string");
-    // Two stored plus the quote currently on the poster.
-    expect(sheetText).toContain(`3 of ${QUOTES.length}`);
+    // Stored plus whatever landed on the poster — derived, not hardcoded,
+    // because the random poster quote can itself be one of the stored ones.
+    const onScreen = tree.root
+      .findByProps({ testID: "visible-layer" })
+      .findAllByType("Text")
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string" && QUOTES.includes(child));
+    const expected = new Set([...stored, ...onScreen]).size;
+    expect(sheetText).toContain(`${expected} of ${QUOTES.length}`);
   });
 
   it("counts the on-screen quote as seen on a fresh install", async () => {
