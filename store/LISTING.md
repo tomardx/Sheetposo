@@ -91,8 +91,8 @@ Category: **Entertainment / Other**
 | Question | Answer |
 |---|---|
 | Violence — realistic or cartoon | No |
-| Sexual content or nudity | No |
-| Crude humour | **Yes** — a handful of silly toilet/body jokes |
+| Sexual content or nudity | No — see note below |
+| Crude humour (bodily functions) | **No** — see note below |
 | Profanity | **No** — the current quote list contains no swearing |
 | References to drugs, alcohol or tobacco | **Yes** — two joke references to drugs, one to day drinking |
 | Gambling — simulated or real | No |
@@ -100,6 +100,38 @@ Category: **Entertainment / Other**
 | User-generated content or user interaction | No |
 | Shares user location | No |
 | Allows purchases | No |
+
+### Crude humour — why "No"
+
+Play's Crude Humour section asks only one thing: does the app contain bodily
+functions such as belching, flatulence or vomiting, used for humour. Audited
+against the shipping quote list:
+
+- belching, flatulence, vomiting, faeces, mucus, spit: **zero occurrences**
+- one indirect urination pun (`I C U P N i forgot what i had else to say`)
+- two toilet references, both about the fixture rather than any bodily act
+
+Every checkbox under that question describes something depicted or audible
+(flatulence *sounds*, a *depiction* of faeces, defecation *visually
+depicted*). This app is text on a plain background, so none of them applies.
+Answering Yes forces a checkbox, and the nearest one groups urination with
+"realistically depicted faeces" — declaring content that is not there.
+
+### Sexual content — why "No"
+
+Three lines carry mild innuendo: `imagine a pencis, heck, imagine two
+pencils` (a bait-and-switch that lands on stationery), `dont work hard, get
+hard while working`, and `dont hide your freak`. There is no depiction of
+sexual behaviour or nudity anywhere, which is what the question asks about.
+
+If the questionnaire offers a narrower "sexual innuendo or references"
+option rather than depictions, tick it — that one is accurate.
+
+### If the quote list changes
+
+Both answers above describe the 312 quotes currently shipping. Add profanity
+or cruder material later and the questionnaire has to be re-taken — the
+rating is tied to what actually ships.
 
 Expect a **Teen / PEGI 12** style rating. That is fine and does not restrict
 the app in any meaningful way.
