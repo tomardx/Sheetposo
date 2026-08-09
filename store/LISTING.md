@@ -94,8 +94,8 @@ Category: **Entertainment / Other**
 | Sexual content or nudity | No — see note below |
 | Crude humour (bodily functions) | **No** — see note below |
 | Profanity | **No** — the current quote list contains no swearing |
-| References to drugs, alcohol or tobacco | **Yes** — two joke references to drugs, one to day drinking |
-| Gambling — simulated or real | No |
+| References to drugs, alcohol or tobacco | **Yes** — illegal/recreational drugs and alcohol only, both "Reference", both "Rarely". Do **not** tick medical drugs, tobacco, or fantasy drugs: there are zero of each. |
+| Gambling — simulated or real | **One passing reference exists** — see note below |
 | Horror / fear content | No |
 | User-generated content or user interaction | No |
 | Shares user location | No |
@@ -126,6 +126,33 @@ sexual behaviour or nudity anywhere, which is what the question asks about.
 
 If the questionnaire offers a narrower "sexual innuendo or references"
 option rather than depictions, tick it — that one is accurate.
+
+### Gambling — one line to decide on
+
+`people say gambling is bad because they wanna hog it for themselves`
+
+That is the only gambling reference in the list. The app has no gambling
+functionality, no simulation, and gambling is not a theme — but the question
+asks about references too. Either declare **Yes**, or cut this single line and
+answer **No** cleanly.
+
+An earlier version of this sheet said "No" on the strength of a search that
+used the pattern `\bgambl\b`, which cannot match "gambling" — there is no word
+boundary between "l" and "i". The reference was there the whole time.
+
+### Verified counts in the shipping list
+
+| Content | Count | Lines |
+|---|---|---|
+| Profanity | 0 | — |
+| Tobacco | 0 | — |
+| Medical drugs | 0 | — |
+| Fantasy drugs | 0 | — |
+| Illegal / recreational drugs | 2 | "parents are like drugs…", "even something has meth in it" |
+| Alcohol | 1 | "if day drinking is so bad…" |
+| Gambling | 1 | "people say gambling is bad…" |
+| Sexual innuendo | 2 | "imagine a pencis…", "…get hard while working" |
+| Bodily functions | 0 | — |
 
 ### If the quote list changes
 
