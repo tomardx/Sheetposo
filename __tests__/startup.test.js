@@ -245,7 +245,12 @@ describe("sharing", () => {
     await press(tree, "share-button");
 
     expect(captureRef).toHaveBeenCalledTimes(1);
-    expect(captureRef.mock.calls[0][1]).toMatchObject({ format: "png" });
+    const options = captureRef.mock.calls[0][1];
+    expect(options).toMatchObject({ format: "png" });
+    // Square export: chat apps crop tall images in the message preview, which
+    // would cut off the watermark.
+    expect(options.width).toBe(options.height);
+    expect(options.width).toBeGreaterThanOrEqual(1000);
     expect(Sharing.shareAsync).toHaveBeenCalledWith(
       "file:///tmp/poster.png",
       expect.objectContaining({ mimeType: "image/png" })
@@ -253,6 +258,14 @@ describe("sharing", () => {
     // No caption, message, dialog title, or URL may ride along with the image.
     const shareOptions = Sharing.shareAsync.mock.calls[0][1];
     expect(Object.keys(shareOptions)).toEqual(["mimeType"]);
+  });
+
+  it("lays the capture layer out as a square", async () => {
+    const tree = await renderApp();
+    const layer = tree.root.findByProps({ testID: "capture-layer" });
+    const style = StyleSheet.flatten(layer.props.style);
+    expect(style.width).toBe(style.height);
+    expect(style.width).toBeGreaterThan(0);
   });
 
   it("puts the watermark in the captured poster but never on screen", async () => {

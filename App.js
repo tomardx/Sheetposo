@@ -45,6 +45,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // Backstop so a stalled font load can never strand the app on the splash.
 const SPLASH_TIMEOUT_MS = 5000;
 const TOAST_VISIBLE_MS = 1500;
+// Exported share image, square. 1080 is what chat apps expect.
+const SHARE_IMAGE_PX = 1080;
 
 // Transparent lotus layer, reused as the share watermark.
 const LOTUS_MARK = require("./assets/adaptive-icon.png");
@@ -110,7 +112,8 @@ function BackgroundShapes({ shapes }) {
 }
 
 // The poster itself: background + quote, with nothing interactive. Rendered
-// twice — once visibly, once as the capture source with branding attached.
+// twice — once visibly and full-screen, once square as the capture source with
+// branding attached.
 function PosterFace({ background, quote, branded, chromeFont }) {
   return (
     <View style={styles.face}>
@@ -121,7 +124,7 @@ function PosterFace({ background, quote, branded, chromeFont }) {
         style={StyleSheet.absoluteFill}
       />
       <BackgroundShapes shapes={background.shapes} />
-      <View style={styles.content}>
+      <View style={[styles.content, branded && styles.contentBranded]}>
         <Text style={[styles.quote, { fontSize: quoteFontSize(quote) }]}>
           {quote}
         </Text>
@@ -157,6 +160,10 @@ function Poster() {
   const handledResponseRef = useRef(null);
   const lastResponse = Notifications.useLastNotificationResponse();
   const captureRefTarget = useRef(null);
+  // Shared images are 1:1. Sized to the screen width so the layout matches
+  // what is on screen, then exported at a fixed resolution.
+  const { width: screenWidth } = useWindowDimensions();
+  const shareSize = screenWidth;
 
   const [toastMessage, setToastMessage] = useState(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -274,6 +281,10 @@ function Poster() {
         format: "png",
         quality: 1,
         result: "tmpfile",
+        // Fixed output so every share is the same size regardless of screen
+        // density, and large enough for chat apps not to soften it.
+        width: SHARE_IMAGE_PX,
+        height: SHARE_IMAGE_PX,
       });
       if (!(await Sharing.isAvailableAsync())) {
         showToast("Sharing unavailable.");
@@ -292,15 +303,16 @@ function Poster() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      {/* Capture source. Sits behind the visible poster, which covers it
-          completely, so the watermark never appears on screen — and the
-          capture needs no flicker-inducing state toggle. */}
+      {/* Capture source. Square, because chat apps crop tall images in the
+          message preview and the watermark would be cut off. Sits behind the
+          visible poster, which covers it completely, so it never appears on
+          screen — and the capture needs no flicker-inducing state toggle. */}
       <View
         ref={captureRefTarget}
         collapsable={false}
         pointerEvents="none"
         testID="capture-layer"
-        style={StyleSheet.absoluteFill}
+        style={[styles.captureLayer, { width: shareSize, height: shareSize }]}
       >
         <PosterFace
           background={background}
@@ -467,10 +479,22 @@ const styles = StyleSheet.create({
   face: {
     flex: 1,
   },
+  captureLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    overflow: "hidden",
+  },
   content: {
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 28,
+  },
+  // The square has far less height than the screen, so keep the quote clear
+  // of the watermark sitting at the bottom of it.
+  contentBranded: {
+    paddingBottom: 74,
+    paddingHorizontal: 26,
   },
   // The quote stays loud on purpose — the calm wrapper is the joke (BRAND.md).
   quote: {
@@ -488,27 +512,27 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 54,
+    bottom: 26,
     alignItems: "center",
   },
   watermarkLotusClip: {
-    width: 38,
-    height: 28,
+    width: 30,
+    height: 22,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
     opacity: 0.9,
   },
   watermarkLotus: {
-    width: 96,
-    height: 96,
+    width: 76,
+    height: 76,
   },
   watermarkText: {
-    marginTop: 7,
+    marginTop: 6,
     color: BRAND.sand,
     opacity: 0.85,
-    fontSize: 13,
-    letterSpacing: 3,
+    fontSize: 11,
+    letterSpacing: 2.5,
   },
   footer: {
     position: "absolute",
