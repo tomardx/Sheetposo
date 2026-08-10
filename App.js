@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
+  AppState,
   Image,
   Modal,
   Pressable,
@@ -29,9 +30,9 @@ import {
 } from "./notifications";
 import ErrorBoundary, { installGlobalErrorHandler } from "./ErrorBoundary";
 import {
-  loadSeenQuotes,
   presentedQuotes,
   saveSeenQuotes,
+  syncDeliveredIntoSeen,
 } from "./seenQuotes";
 
 // Both are synchronous, JS-only registrations: safe at module scope.
@@ -193,17 +194,29 @@ function Poster() {
     SplashScreen.hideAsync().catch(() => {});
   }, [startupDone]);
 
-  // Load the stored history, plus anything sitting in the notification tray.
+  const absorb = useCallback((entries) => {
+    if (!entries?.length) return;
+    setSeen((prev) => {
+      const missing = entries.filter((entry) => entry && !prev.includes(entry));
+      return missing.length ? [...prev, ...missing] : prev;
+    });
+  }, []);
+
+  // Everything already delivered counts, whether or not it was opened: quotes
+  // whose scheduled time has passed, plus anything still in the tray.
+  const refreshSeen = useCallback(async () => {
+    const [delivered, tray] = await Promise.all([
+      syncDeliveredIntoSeen(),
+      presentedQuotes(),
+    ]);
+    return [...delivered, ...tray];
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadSeenQuotes(), presentedQuotes()])
-      .then(([stored, tray]) => {
-        if (cancelled) return;
-        const merged = [...stored];
-        for (const entry of tray) {
-          if (!merged.includes(entry)) merged.push(entry);
-        }
-        setSeen(merged);
+    refreshSeen()
+      .then((entries) => {
+        if (!cancelled) absorb(entries);
       })
       .catch(() => {})
       .finally(() => {
@@ -212,7 +225,32 @@ function Poster() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [absorb, refreshSeen]);
+
+  // Coming back to the app re-checks, so notifications that fired while it was
+  // in the background are picked up without needing a relaunch.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      refreshSeen()
+        .then(absorb)
+        .catch(() => {});
+    });
+    return () => sub.remove();
+  }, [absorb, refreshSeen]);
+
+  // And if one fires while the app is open, record it immediately.
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener((incoming) => {
+      const content = incoming?.request?.content;
+      const text =
+        typeof content?.data?.quoteText === "string" && content.data.quoteText
+          ? content.data.quoteText
+          : content?.body;
+      if (typeof text === "string" && text) absorb([text]);
+    });
+    return () => sub.remove();
+  }, [absorb]);
 
   // Record whatever is on screen, but only once the stored history has loaded,
   // so the first render cannot overwrite it with a single entry.

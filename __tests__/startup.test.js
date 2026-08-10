@@ -20,6 +20,7 @@ jest.mock("expo-font", () => ({
 jest.mock("expo-notifications", () => ({
   setNotificationHandler: jest.fn(),
   useLastNotificationResponse: jest.fn(() => null),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   getPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true })),
   requestPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true })),
   setNotificationChannelAsync: jest.fn(() => Promise.resolve()),
@@ -38,6 +39,8 @@ jest.mock("./../seenQuotes", () => ({
   loadSeenQuotes: jest.fn(() => Promise.resolve([])),
   saveSeenQuotes: jest.fn(() => Promise.resolve()),
   presentedQuotes: jest.fn(() => Promise.resolve([])),
+  setPendingDeliveries: jest.fn(() => Promise.resolve()),
+  syncDeliveredIntoSeen: jest.fn(() => Promise.resolve([])),
 }));
 
 jest.mock("react-native-view-shot", () => ({
@@ -320,14 +323,14 @@ describe("previously seen", () => {
   }
 
   beforeEach(() => {
-    seenStore.loadSeenQuotes.mockResolvedValue([]);
+    seenStore.syncDeliveredIntoSeen.mockResolvedValue([]);
     seenStore.presentedQuotes.mockResolvedValue([]);
     seenStore.saveSeenQuotes.mockClear();
   });
 
   it("lists only stored quotes, never the unseen ones", async () => {
     const stored = [QUOTES[2], QUOTES[5]];
-    seenStore.loadSeenQuotes.mockResolvedValue(stored);
+    seenStore.syncDeliveredIntoSeen.mockResolvedValue(stored);
 
     const tree = await renderApp();
     await press(tree, "seen-button");
@@ -357,7 +360,7 @@ describe("previously seen", () => {
 
   it("counts what has been seen against the full list", async () => {
     const stored = [QUOTES[1], QUOTES[4]];
-    seenStore.loadSeenQuotes.mockResolvedValue(stored);
+    seenStore.syncDeliveredIntoSeen.mockResolvedValue(stored);
     const tree = await renderApp();
     await press(tree, "seen-button");
     const sheetText = tree.root
@@ -412,7 +415,7 @@ describe("previously seen", () => {
 
   it("does not overwrite stored history with the first render", async () => {
     const stored = [QUOTES[11], QUOTES[12], QUOTES[13]];
-    seenStore.loadSeenQuotes.mockResolvedValue(stored);
+    seenStore.syncDeliveredIntoSeen.mockResolvedValue(stored);
 
     await renderApp();
     const lastSaved = seenStore.saveSeenQuotes.mock.calls.at(-1)[0];

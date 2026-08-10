@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { QUOTES, QUOTES_VERSION } from "./quotes";
+import { setPendingDeliveries, syncDeliveredIntoSeen } from "./seenQuotes";
 
 const LAST_SCHEDULED_KEY = "sheetposo:lastScheduledDay";
 
@@ -106,6 +107,8 @@ export function randomTimesForDay(dayOffset) {
   return times;
 }
 
+// Returns what was booked, so the caller can log it and later count the quote
+// as seen once its time passes.
 async function scheduleQuoteAt(date) {
   const quoteIndex = Math.floor(Math.random() * QUOTES.length);
   await Notifications.scheduleNotificationAsync({
@@ -128,6 +131,7 @@ async function scheduleQuoteAt(date) {
       channelId: CHANNEL_ID,
     },
   });
+  return { text: QUOTES[quoteIndex], at: date.getTime() };
 }
 
 // Re-rolls the whole schedule once per calendar day: cancels everything
@@ -143,11 +147,17 @@ export async function rescheduleIfNeeded() {
   const lastScheduled = await AsyncStorage.getItem(LAST_SCHEDULED_KEY);
   if (lastScheduled === today) return;
 
+  // Bank anything already delivered before wiping the schedule, otherwise
+  // those quotes would drop out of the history unrecorded.
+  await syncDeliveredIntoSeen();
+
   await Notifications.cancelAllScheduledNotificationsAsync();
+  const booked = [];
   for (let dayOffset = 0; dayOffset <= DAYS_AHEAD; dayOffset++) {
     for (const date of randomTimesForDay(dayOffset)) {
-      await scheduleQuoteAt(date);
+      booked.push(await scheduleQuoteAt(date));
     }
   }
+  await setPendingDeliveries(booked);
   await AsyncStorage.setItem(LAST_SCHEDULED_KEY, today);
 }
