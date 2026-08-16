@@ -22,7 +22,7 @@ import { captureRef } from "react-native-view-shot";
 import { useFonts } from "expo-font";
 // Subpath import so Metro bundles only this weight, not all of Poppins.
 import { Poppins_500Medium } from "@expo-google-fonts/poppins/500Medium";
-import { QUOTES } from "./quotes";
+import { QUOTES, formatQuote } from "./quotes";
 import { BACKGROUNDS, BRAND, randomBackgroundIndex } from "./backgrounds";
 import {
   configureNotificationHandling,
@@ -127,7 +127,7 @@ function PosterFace({ background, quote, branded, chromeFont }) {
       <BackgroundShapes shapes={background.shapes} />
       <View style={[styles.content, branded && styles.contentBranded]}>
         <Text style={[styles.quote, { fontSize: quoteFontSize(quote) }]}>
-          {quote}
+          {formatQuote(quote)}
         </Text>
       </View>
       {branded && (
@@ -475,7 +475,7 @@ function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
                     pressed && styles.seenRowPressed,
                   ]}
                 >
-                  <Text style={styles.seenText}>{entry}</Text>
+                  <Text style={styles.seenText}>{formatQuote(entry)}</Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -539,8 +539,8 @@ const styles = StyleSheet.create({
     color: BRAND.cream,
     fontWeight: "900",
     textAlign: "center",
-    // Lowercased on purpose: reads casual rather than dramatic.
-    textTransform: "lowercase",
+    // No textTransform: the list is authored lowercase and formatQuote()
+    // capitalises the opening letter, so forcing a case here would undo it.
     letterSpacing: 1,
     textShadowColor: "rgba(60, 70, 55, 0.45)",
     textShadowOffset: { width: 0, height: 3 },
@@ -690,7 +690,6 @@ const styles = StyleSheet.create({
     color: BRAND.cream,
     fontSize: 14,
     lineHeight: 20,
-    textTransform: "lowercase",
   },
   sheetClose: {
     alignSelf: "center",

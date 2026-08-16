@@ -5,8 +5,14 @@ import renderer, { act } from "react-test-renderer";
 import { StyleSheet, Text } from "react-native";
 import App from "../App";
 import ErrorBoundary from "../ErrorBoundary";
-import { QUOTES } from "../quotes";
+import { QUOTES, formatQuote } from "../quotes";
 import { BACKGROUNDS } from "../backgrounds";
+
+// Quotes are stored lowercase and capitalised at display time, so anything
+// compared against rendered text has to go through formatQuote first.
+const shown = (quote) => formatQuote(quote);
+const SHOWN_QUOTES = new Set(QUOTES.map(formatQuote));
+const isQuote = (text) => SHOWN_QUOTES.has(text);
 
 jest.mock("expo-splash-screen", () => ({
   preventAutoHideAsync: jest.fn(() => Promise.resolve()),
@@ -97,7 +103,7 @@ describe("app startup", () => {
 
   it("renders a real quote from the bundled list", async () => {
     const tree = await renderApp();
-    expect(visibleText(tree).some((text) => QUOTES.includes(text))).toBe(true);
+    expect(visibleText(tree).some((text) => isQuote(text))).toBe(true);
     expectNoCrash(tree);
   });
 
@@ -119,7 +125,7 @@ describe("app startup", () => {
     const tree = await renderApp();
     // A font failure must not strand the app on the splash.
     expect(SplashScreen.hideAsync).toHaveBeenCalled();
-    expect(visibleText(tree).some((text) => QUOTES.includes(text))).toBe(true);
+    expect(visibleText(tree).some((text) => isQuote(text))).toBe(true);
     expectNoCrash(tree);
 
     useFonts.mockReturnValue([true, null]);
@@ -131,7 +137,7 @@ describe("app startup", () => {
       new Error("permissions unavailable")
     );
     const tree = await renderApp();
-    expect(visibleText(tree).some((text) => QUOTES.includes(text))).toBe(true);
+    expect(visibleText(tree).some((text) => isQuote(text))).toBe(true);
     expectNoCrash(tree);
   });
 
@@ -166,13 +172,46 @@ describe("app startup", () => {
     }
   });
 
-  it("renders the quote lowercased rather than shouted", async () => {
+  it("capitalises the first letter of the quote on screen", async () => {
     const tree = await renderApp();
     const quoteNode = tree.root
       .findAllByType("Text")
-      .find((node) => QUOTES.includes(node.props.children));
+      .find((node) => isQuote(node.props.children));
+    const rendered = quoteNode.props.children;
+
+    expect(rendered[0]).toBe(rendered[0].toUpperCase());
+    // No forced casing, which would otherwise undo that capital.
     const style = StyleSheet.flatten(quoteNode.props.style);
-    expect(style.textTransform).toBe("lowercase");
+    expect(style.textTransform).toBeUndefined();
+  });
+
+  // Deterministic, unlike the render test above: the poster picks at random,
+  // and one quote ("I C U P …") is deliberately capitalised mid-line.
+  describe("formatQuote", () => {
+    it("capitalises the opening letter", () => {
+      expect(formatQuote("the toaster remembers")).toBe(
+        "The toaster remembers"
+      );
+    });
+
+    it("leaves the rest of the line untouched", () => {
+      expect(formatQuote("I C U P N i forgot what i had else to say")).toBe(
+        "I C U P N i forgot what i had else to say"
+      );
+    });
+
+    it("is safe on empty or missing input", () => {
+      expect(formatQuote("")).toBe("");
+      expect(formatQuote(undefined)).toBe("");
+      expect(formatQuote(null)).toBe("");
+    });
+
+    it("capitalises every quote in the shipping list", () => {
+      for (const quote of QUOTES) {
+        const first = formatQuote(quote)[0];
+        expect(first).toBe(first.toUpperCase());
+      }
+    });
   });
 
   // Rewriting the quote list shifts every index, so a tapped notification must
@@ -194,7 +233,7 @@ describe("app startup", () => {
       const quote = QUOTES[7];
       tapWith({ body: quote, data: { quoteText: quote, quoteIndex: 7 } });
       const tree = await renderApp();
-      expect(visibleText(tree)).toContain(quote);
+      expect(visibleText(tree)).toContain(shown(quote));
     });
 
     it("prefers the carried text over a now-stale index", async () => {
@@ -202,8 +241,8 @@ describe("app startup", () => {
       // Index points somewhere else entirely, as it would after a rewrite.
       tapWith({ body: carried, data: { quoteText: carried, quoteIndex: 400 } });
       const tree = await renderApp();
-      expect(visibleText(tree)).toContain(carried);
-      expect(visibleText(tree)).not.toContain(QUOTES[400]);
+      expect(visibleText(tree)).toContain(shown(carried));
+      expect(visibleText(tree)).not.toContain(shown(QUOTES[400]));
     });
 
     it("falls back to the body when a legacy notification has no text", async () => {
@@ -216,7 +255,7 @@ describe("app startup", () => {
     it("still renders a quote when the notification carries nothing usable", async () => {
       tapWith({ body: null, data: {} });
       const tree = await renderApp();
-      expect(visibleText(tree).some((t) => QUOTES.includes(t))).toBe(true);
+      expect(visibleText(tree).some((t) => isQuote(t))).toBe(true);
       expectNoCrash(tree);
     });
   });
@@ -284,7 +323,7 @@ describe("sharing", () => {
     expect(layerText("capture-layer")).toContain("Sheetposo");
     expect(layerText("visible-layer")).not.toContain("Sheetposo");
     // Both layers still show the same quote, so the capture matches the screen.
-    const quoteOf = (id) => layerText(id).find((text) => QUOTES.includes(text));
+    const quoteOf = (id) => layerText(id).find((text) => isQuote(text));
     expect(quoteOf("capture-layer")).toBe(quoteOf("visible-layer"));
   });
 
@@ -341,7 +380,7 @@ describe("previously seen", () => {
       .flatMap((node) => node.props.children)
       .filter((child) => typeof child === "string");
 
-    for (const entry of stored) expect(sheetText).toContain(entry);
+    for (const entry of stored) expect(sheetText).toContain(shown(entry));
     // Everything else in the list must stay hidden. The poster's own quote is
     // legitimately seen, so allow it — but read it from the poster subtree
     // only. Scanning the whole tree would include the sheet itself, and any
@@ -350,9 +389,9 @@ describe("previously seen", () => {
       .findByProps({ testID: "visible-layer" })
       .findAllByType("Text")
       .flatMap((node) => node.props.children)
-      .filter((child) => typeof child === "string" && QUOTES.includes(child));
-    const allowed = new Set([...stored, ...onScreen]);
-    const leaked = QUOTES.filter(
+      .filter((child) => typeof child === "string" && isQuote(child));
+    const allowed = new Set([...stored.map(shown), ...onScreen]);
+    const leaked = QUOTES.map(shown).filter(
       (q) => !allowed.has(q) && sheetText.includes(q)
     );
     expect(leaked).toEqual([]);
@@ -374,8 +413,8 @@ describe("previously seen", () => {
       .findByProps({ testID: "visible-layer" })
       .findAllByType("Text")
       .flatMap((node) => node.props.children)
-      .filter((child) => typeof child === "string" && QUOTES.includes(child));
-    const expected = new Set([...stored, ...onScreen]).size;
+      .filter((child) => typeof child === "string" && isQuote(child));
+    const expected = new Set([...stored.map(shown), ...onScreen]).size;
     expect(sheetText).toContain(`${expected} of ${QUOTES.length}`);
   });
 
@@ -393,10 +432,11 @@ describe("previously seen", () => {
 
   it("records the displayed quote and persists it", async () => {
     const tree = await renderApp();
-    const shown = visibleText(tree).find((t) => QUOTES.includes(t));
+    const onScreen = visibleText(tree).filter(isQuote);
     expect(seenStore.saveSeenQuotes).toHaveBeenCalled();
+    // History stores the raw lowercase quote; the poster shows it capitalised.
     const lastSaved = seenStore.saveSeenQuotes.mock.calls.at(-1)[0];
-    expect(lastSaved).toContain(shown);
+    expect(lastSaved.some((raw) => onScreen.includes(shown(raw)))).toBe(true);
   });
 
   it("counts quotes delivered to the notification tray", async () => {
@@ -410,7 +450,7 @@ describe("previously seen", () => {
       .findAllByType("Text")
       .flatMap((node) => node.props.children)
       .filter((child) => typeof child === "string");
-    expect(sheetText).toContain(trayQuote);
+    expect(sheetText).toContain(shown(trayQuote));
   });
 
   it("does not overwrite stored history with the first render", async () => {

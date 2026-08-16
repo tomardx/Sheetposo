@@ -7,10 +7,26 @@
 // Authored lowercase so notification bodies read as casual as the poster does
 // (the poster also lowercases at render time).
 //
+// ADDING QUOTES — the house rule:
+//   Write the whole line lowercase. Do not capitalise the first letter here.
+//   formatQuote() below capitalises it at display time, for the poster, the
+//   seen list, and the notification body alike. Hand-casing the list would
+//   only make it inconsistent.
+//   Deliberate capitals mid-line are fine and are left alone — e.g. the
+//   "I C U P" gag depends on them.
+//
 // Bumping QUOTES_VERSION invalidates quote indexes in already-scheduled
 // notifications and forces an immediate reschedule, so the list can be freely
 // rewritten, reordered, or trimmed.
 export const QUOTES_VERSION = 4;
+
+// The single place a quote is turned into something readable. Everything that
+// shows a quote to a person goes through this, so the casing can never drift
+// between the poster and the notification.
+export function formatQuote(text) {
+  if (typeof text !== "string" || !text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 export const QUOTES = [
   "feeling proud? remember that even toilet water is drinkable.",

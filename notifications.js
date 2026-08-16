@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
-import { QUOTES, QUOTES_VERSION } from "./quotes";
+import { QUOTES, QUOTES_VERSION, formatQuote } from "./quotes";
 import { setPendingDeliveries, syncDeliveredIntoSeen } from "./seenQuotes";
 
 const LAST_SCHEDULED_KEY = "sheetposo:lastScheduledDay";
@@ -114,7 +114,7 @@ async function scheduleQuoteAt(date) {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "Daily Reflection",
-      body: QUOTES[quoteIndex],
+      body: formatQuote(QUOTES[quoteIndex]),
       // Carry the text itself, not just the index: editing the quote list
       // shifts indexes, and already-scheduled notifications would otherwise
       // open the app on the wrong quote.

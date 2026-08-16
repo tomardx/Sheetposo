@@ -49,6 +49,14 @@ sideloadable; no Play Store involved.
 ## Project layout
 
 - `App.js` — the poster screen and notification-tap handling
-- `quotes.js` — the quote list (append-only: notifications reference quotes by index)
+- `quotes.js` — the quote list, plus `formatQuote()`
+
+### Adding quotes
+
+Write the line **entirely lowercase**. `formatQuote()` capitalises the first
+letter wherever a quote is shown — the poster, the seen list, and the
+notification body — so the list never needs hand-casing and can't drift out of
+sync between those places. Deliberate mid-line capitals are preserved.
+
 - `backgrounds.js` — procedural background definitions (gradients + shapes)
 - `notifications.js` — permission handling and daily random scheduling
