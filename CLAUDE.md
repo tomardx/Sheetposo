@@ -24,6 +24,19 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-19 — Punctuation pass, 454 new quotes, rarity proposal
+
+- `quotes.js`: punctuated all 312 existing quotes (contractions, terminal
+  marks, capital `I`, proper nouns) after readers complained about the sloppy
+  casing; added 454 new witty/cynical/demotivational lines, 766 total.
+  Rewrote the header house rules to cover punctuation and voice, and bumped
+  `QUOTES_VERSION` to 5 so scheduled notifications carrying the old
+  unpunctuated text get re-rolled.
+- `quotes.js`: `formatQuote()` now capitalises after each sentence break, not
+  just the opening letter, so multi-sentence quotes render correctly.
+- `RARITY.md`: new proposal for legendary/mythic/rare tiers with candidate
+  assignments and open questions. Nothing implemented.
+
 ### 2026-08-16 — Add project rules file
 
 - Created `CLAUDE.md` with the rolling 3-entry changelog rule and the
