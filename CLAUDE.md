@@ -33,6 +33,12 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-19: Bump the app version to 1.1.0
+
+- `app.json`: version was still 1.0.0 while the in-app patch notes announced
+  1.1.0, so Google Play would have shown testers the wrong number. versionCode
+  is untouched, EAS manages it remotely.
+
 ### 2026-08-19: Bring RARITY.md up to date
 
 - `RARITY.md`: rewritten. It still opened with "proposal, not built" and
@@ -52,20 +58,3 @@ message and push to `origin`.
   per render, per Seen row, and per candidate on every weighted pull, and it
   was taking the test suite from 5s to 338s on its own.
 - `patchNotes.js`: the tier section is headed "Seven deadly tiers".
-
-### 2026-08-19: The rarity update
-
-- `rarity.js`: new file. Seven tiers from "Super ultra mega common" down to
-  "fish", each with a colour, gradient, motion level, and a share of the pull.
-  Pulls pick a tier by share then a quote inside it: per-quote weights were
-  swamped by the 670-odd common lines and put `fish` at 0.01%, once every four
-  years. Unlisted quotes split between the two common tiers by a stable hash,
-  so neither needs curating.
-- `App.js`: poster takes its gradient from the tier, `RarityAura` adds motion
-  that scales with it (frozen on the capture layer so shares cannot catch a
-  half-faded frame), and the Seen list shows each entry's tier and colour.
-- `notifications.js`: a second channel for the two rarest tiers, since a
-  channel's sound is frozen at creation, plus `content.color` to tint the tray.
-- `assets/legendary.wav` and `tools/make_legendary.py`: a 385ms arpeggio for
-  those tiers.
-- `patchNotes.js`: 1.1.0, "The rarity update (like my mom says i am)".
