@@ -1,8 +1,8 @@
-# Rarity tiers — proposal, not built
+# Rarity tiers: proposal, not built
 
 Nothing in the app does any of this yet. This is a proposal for the tier
 scheme, plus a first pass at which existing lines belong where, so there is
-something concrete to argue with. **Every assignment below needs your eye** —
+something concrete to argue with. **Every assignment below needs your eye**,
 picking what feels legendary is taste, and taste is the one part of this that
 cannot be automated.
 
@@ -17,7 +17,7 @@ so none of them feel like anything. Tiers fix that in two ways:
 - **The mediocre ones earn their keep.** Common lines become the baseline that
   makes a rare one land. You need the flat stretch to have a peak.
 
-The Seen list already gives you the collection mechanic for free — it just has
+The Seen list already gives you the collection mechanic for free, it just has
 nothing to collect yet. Tiers turn it into a set worth completing.
 
 ## Proposed tiers
@@ -33,7 +33,7 @@ nothing to collect yet. Tiers turn it into a set worth completing.
 A note on the colours: you suggested purple, yellow, green. Those read as a
 game HUD, which fights the wellness-app disguise that makes the joke work
 (BRAND.md: *"the wrapper is sincere, the content is not"*). The palette above
-uses the brand's own ramp, ending at terracotta — the wilting petal, already
+uses the brand's own ramp, ending at terracotta, the wilting petal, already
 the accent for "this one is different". It stays sincere on the surface and
 still gives you five distinguishable steps. If you want the loud version
 anyway, say so; it's a one-line change.
@@ -53,7 +53,7 @@ app brags about.
 
 ## First-pass candidates
 
-### Mythic — the ones that are genuinely strange
+### Mythic: the ones that are genuinely strange
 
 - `even something has meth in it.`
 - `I C U P N I forgot what I had else to say.`
@@ -66,7 +66,7 @@ app brags about.
 Yours, mostly. They are the least explicable lines in the list, which is
 exactly what a top tier should be.
 
-### Legendary — the ones with a real punchline
+### Legendary: the ones with a real punchline
 
 - `parents are like drugs, you flush them down the toilet when the cops arrive.`
 - `the toaster remembers. the toaster always remembers.`
@@ -81,7 +81,7 @@ exactly what a top tier should be.
 - `insight is cheap. Tuesday is expensive.`
 - `you're not blocked, you are comfortable, and those look identical from inside.`
 
-### Epic — strong, reusable, quotable
+### Epic: strong, reusable, quotable
 
 - `today is a good day to start collecting jars.`
 - `the walls are mad at you.`
@@ -96,7 +96,7 @@ exactly what a top tier should be.
 - `you have made a beautiful list of things that will not happen.`
 - `nobody is going to tell you it is okay. it is okay. that changes nothing.`
 
-### Common — everything else by default
+### Common: everything else by default
 
 Anything unassigned stays Common. That is the right default: it means adding a
 quote requires no decision, and promoting one is a deliberate act.
@@ -123,6 +123,6 @@ in `randomQuote()`, and the Seen list needs a coloured dot.
 1. Brand palette above, or the loud purple/yellow/green?
 2. Should rarity affect the **notification** pull, or only the in-app shuffle?
    Weighting notifications means your best lines reach people who never open
-   the app — but it also means they burn faster.
+   the app, but it also means they burn faster.
 3. Should the Seen list show how many of each tier remain? It makes it a
    collection, which is good for retention and bad for the joke's deadpan.

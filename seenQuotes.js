@@ -3,7 +3,7 @@ import * as Notifications from "expo-notifications";
 
 const SEEN_KEY = "sheetposo:seenQuotes";
 // What the app has scheduled and when, so a notification counts as seen once
-// its time passes — whether or not it was tapped, and even if it was swiped
+// its time passes, whether or not it was tapped, and even if it was swiped
 // away before the app was next opened.
 const PENDING_KEY = "sheetposo:pendingDeliveries";
 // Generous ceiling: the whole list is well under this, but a corrupted or
@@ -11,7 +11,7 @@ const PENDING_KEY = "sheetposo:pendingDeliveries";
 const MAX_SEEN = 5000;
 
 // Stored as text rather than indexes, so the history survives any edit to the
-// quote list — including quotes later removed from it. Order is first-seen.
+// quote list, including quotes later removed from it. Order is first-seen.
 export async function loadSeenQuotes() {
   try {
     const raw = await AsyncStorage.getItem(SEEN_KEY);
@@ -65,7 +65,7 @@ export async function setPendingDeliveries(entries) {
 
 // Moves every notification whose time has passed into the seen history and
 // drops it from the log. This is what makes a quote count as seen when it was
-// merely delivered — the tray check below only catches ones still sitting
+// merely delivered, the tray check below only catches ones still sitting
 // there, so a dismissed or auto-cleared notification used to be lost.
 export async function syncDeliveredIntoSeen(now = Date.now()) {
   const [seen, pending] = await Promise.all([

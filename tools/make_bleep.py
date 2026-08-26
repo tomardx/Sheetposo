@@ -1,6 +1,6 @@
 """Generates assets/bleep.wav: the Sheetposo notification sound.
 
-Two short ascending blips (~190ms total) — quick and distinct enough to be
+Two short ascending blips (~190ms total), quick and distinct enough to be
 recognisable, short enough not to be annoying several times a day. Regenerate
 with: python3 tools/make_bleep.py
 """
@@ -10,7 +10,7 @@ import wave
 
 SAMPLE_RATE = 44100
 AMPLITUDE = 0.55
-# (frequency Hz, duration s) — a rest is frequency 0.
+# (frequency Hz, duration s): a rest is frequency 0.
 SEGMENTS = [(1244.5, 0.065), (0.0, 0.030), (1864.7, 0.090)]
 
 

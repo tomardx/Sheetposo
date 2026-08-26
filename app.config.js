@@ -4,7 +4,7 @@
 // USE_EXACT_ALARM makes Android fire notifications at the exact minute we ask
 // for. Without it, Doze batches them and several arrive at once. But Google
 // Play restricts that permission to apps whose core purpose is alarms,
-// calendars, or timers — declaring it on a quote app invites rejection.
+// calendars, or timers, declaring it on a quote app invites rejection.
 //
 // So: the sideloaded build keeps it, the Play build drops it. The Play build
 // still declares SCHEDULE_EXACT_ALARM, which users can grant themselves under

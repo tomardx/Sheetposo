@@ -390,7 +390,7 @@ describe("what's new", () => {
 
     const text = sheetText(tree);
     const newest = PATCH_NOTES[0];
-    expect(text).toContain(`${newest.version} — ${newest.title}`);
+    expect(text).toContain(`${newest.version}: ${newest.title}`);
     expect(text).toContain(newest.date);
   });
 
@@ -468,7 +468,7 @@ describe("previously seen", () => {
 
     for (const entry of stored) expect(sheetText).toContain(shown(entry));
     // Everything else in the list must stay hidden. The poster's own quote is
-    // legitimately seen, so allow it — but read it from the poster subtree
+    // legitimately seen, so allow it, but read it from the poster subtree
     // only. Scanning the whole tree would include the sheet itself, and any
     // leak would then excuse itself.
     const onScreen = tree.root
@@ -493,7 +493,7 @@ describe("previously seen", () => {
       .findAllByType("Text")
       .flatMap((node) => node.props.children)
       .filter((child) => typeof child === "string");
-    // Stored plus whatever landed on the poster — derived, not hardcoded,
+    // Stored plus whatever landed on the poster, derived, not hardcoded,
     // because the random poster quote can itself be one of the stored ones.
     const onScreen = tree.root
       .findByProps({ testID: "visible-layer" })

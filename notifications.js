@@ -76,7 +76,7 @@ function dayWindow(dayOffset) {
 }
 
 // Picks times by splitting the window into equal slots and jittering within
-// each one. Purely random times clustered badly — opening the app late in the
+// each one. Purely random times clustered badly, opening the app late in the
 // evening could drop the whole day's quotes into the same half hour.
 export function randomTimesForDay(dayOffset) {
   const { start, end, earliest } = dayWindow(dayOffset);

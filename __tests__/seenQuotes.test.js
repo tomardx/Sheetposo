@@ -1,6 +1,6 @@
 // Exercises the real seenQuotes module against an in-memory AsyncStorage.
 // The startup tests mock this module out, so without these the delivery
-// tracking — the part that decides whether an untapped notification counts —
+// tracking, the part that decides whether an untapped notification counts,
 // would have no coverage at all.
 const mockStore = new Map();
 

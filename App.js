@@ -43,7 +43,7 @@ installGlobalErrorHandler();
 configureNotificationHandling();
 
 // Hold the splash before any async startup work begins. Never let a failure
-// here reject unhandled — a missing splash is not worth crashing over.
+// here reject unhandled, a missing splash is not worth crashing over.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Backstop so a stalled font load can never strand the app on the splash.
@@ -116,7 +116,7 @@ function BackgroundShapes({ shapes }) {
 }
 
 // The poster itself: background + quote, with nothing interactive. Rendered
-// twice — once visibly and full-screen, once square as the capture source with
+// twice, once visibly and full-screen, once square as the capture source with
 // branding attached.
 function PosterFace({ background, quote, branded, chromeFont }) {
   return (
@@ -316,7 +316,7 @@ function Poster() {
 
   const background = BACKGROUNDS[bgIndex];
 
-  // Shares the poster image alone — no caption, link, or other text.
+  // Shares the poster image alone, no caption, link, or other text.
   const shareImage = useCallback(async () => {
     try {
       const uri = await captureRef(captureRefTarget, {
@@ -348,7 +348,7 @@ function Poster() {
       {/* Capture source. Square, because chat apps crop tall images in the
           message preview and the watermark would be cut off. Sits behind the
           visible poster, which covers it completely, so it never appears on
-          screen — and the capture needs no flicker-inducing state toggle. */}
+          screen, and the capture needs no flicker-inducing state toggle. */}
       <View
         ref={captureRefTarget}
         collapsable={false}
@@ -487,7 +487,7 @@ function PatchNotesSheet({ visible, chromeFont, onClose }) {
               <View key={release.version} style={styles.release}>
                 <View style={styles.releaseHead}>
                   <Text style={[styles.releaseVersion, chromeFont]}>
-                    {`${release.version} — ${release.title}`}
+                    {`${release.version}: ${release.title}`}
                   </Text>
                   <Text style={[styles.releaseDate, chromeFont]}>
                     {release.date}
@@ -532,7 +532,7 @@ function PatchNotesSheet({ visible, chromeFont, onClose }) {
 }
 
 // Shows only what this user has actually been shown. The rest of the list is
-// deliberately not reachable from here — unseen quotes stay a surprise.
+// deliberately not reachable from here, unseen quotes stay a surprise.
 function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
   // Most recent first: the one they just read is the one they want.
   const ordered = [...seen].reverse();
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     paddingBottom: 74,
     paddingHorizontal: 26,
   },
-  // The quote stays loud on purpose — the calm wrapper is the joke (BRAND.md).
+  // The quote stays loud on purpose, the calm wrapper is the joke (BRAND.md).
   quote: {
     color: BRAND.cream,
     fontWeight: "900",

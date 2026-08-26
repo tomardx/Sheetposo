@@ -1,15 +1,15 @@
-// All quotes for Sheetposo. Deadpan nonsense — absurd instructions, objects
+// All quotes for Sheetposo. Deadpan nonsense, absurd instructions, objects
 // with feelings, fake science, cynical deflation, backhanded encouragement.
 // English only.
 //
-// ADDING QUOTES — the house rules:
+// ADDING QUOTES, the house rules:
 //
 //   1. Punctuate properly. Apostrophes in contractions ("don't", "you're",
 //      "it's"), commas where a sentence needs them, and a full stop, question
 //      mark, or exclamation mark at the end. Readers noticed when this list
 //      did not, and said so.
 //
-//   2. Start the line lowercase. Do not capitalise the first letter here —
+//   2. Start the line lowercase. Do not capitalise the first letter here,
 //      formatQuote() does it, and it also capitalises after every sentence
 //      break, so "the toaster remembers. the toaster always remembers."
 //      renders correctly. Hand-casing the list would only make it drift.
@@ -18,7 +18,7 @@
 //      gags that depend on them like "I C U P".
 //
 //   4. Aim at the reader, not past them. The voice is witty, cynical and
-//      demotivational, and the joke usually lands on whoever is reading —
+//      demotivational, and the joke usually lands on whoever is reading,
 //      implied rather than stated. Never a direct insult.
 //
 // Bumping QUOTES_VERSION invalidates quote indexes in already-scheduled
