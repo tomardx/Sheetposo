@@ -19,9 +19,10 @@ export const PATCH_NOTES = [
       {
         heading: "Why",
         items: [
-          "Somebody read 765 of the 766 quotes in one sitting. In an afternoon. On purpose.",
-          "He has now finished the app and has nothing left to look forward to. Learn from him.",
-          "The last one is still out there. He will have to wait like everyone else.",
+          "Somebody read all 766 quotes in one sitting. In an afternoon. On purpose. Imagine.",
+          "Not most of them. All of them. There is no rare one still out there for him, nothing left to find. He got the last one too.",
+          "He has seen everything this app will ever say to him, and he was done before dinner.",
+          "The rest of you get two a day now. Thank him.",
         ],
       },
     ],

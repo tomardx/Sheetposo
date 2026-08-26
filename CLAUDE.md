@@ -46,7 +46,7 @@ message and push to `origin`.
   in-memory store, because the old stub returned null for every read and would
   have let an exhausted budget silently refill. Sabotage-checked: removing the
   limit fails three of them.
-- Version 1.1.2, with a patch note.
+- Version 1.1.2, with a patch note needling the tester who did it.
 
 Worth knowing: notifications draw from the whole quote list and have never
 excluded seen quotes, so reaching the end of the collection does not stop them.
