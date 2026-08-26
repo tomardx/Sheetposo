@@ -26,7 +26,7 @@ import { useFonts } from "expo-font";
 import { Poppins_500Medium } from "@expo-google-fonts/poppins/500Medium";
 import { QUOTES, formatQuote } from "./quotes";
 import { BACKGROUNDS, BRAND, randomBackgroundIndex } from "./backgrounds";
-import { tierOf, weightedRandomQuote } from "./rarity";
+import { TIERS, tierById, tierOf, weightedRandomQuote } from "./rarity";
 import {
   configureNotificationHandling,
   rescheduleIfNeeded,
@@ -620,8 +620,33 @@ function PatchNotesSheet({ visible, chromeFont, onClose }) {
 // Shows only what this user has actually been shown. The rest of the list is
 // deliberately not reachable from here, unseen quotes stay a surprise.
 function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
+  // null means no filter. Only tiers the user has actually collected are
+  // offered, so the filter never hints at what is still out there.
+  const [tierFilter, setTierFilter] = useState(null);
+
+  // A tier can drop out of the list between openings, so clear the filter
+  // each time rather than leaving it stuck on an empty selection.
+  useEffect(() => {
+    if (visible) setTierFilter(null);
+  }, [visible]);
+
+  const counts = new Map();
+  for (const entry of seen) {
+    const id = tierOf(entry).id;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  const collected = TIERS.filter((tier) => counts.has(tier.id));
+
   // Most recent first: the one they just read is the one they want.
-  const ordered = [...seen].reverse();
+  const ordered = [...seen]
+    .reverse()
+    .filter((entry) => !tierFilter || tierOf(entry).id === tierFilter);
+
+  const active = tierFilter ? tierById(tierFilter) : null;
+  const countLabel = active
+    ? `${ordered.length} ${active.label.toLowerCase()}`
+    : `${seen.length} of ${QUOTES.length}`;
+
   return (
     <Modal
       visible={visible}
@@ -634,10 +659,58 @@ function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
         <View style={styles.sheet}>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, chromeFont]}>seen so far</Text>
-            <Text style={[styles.sheetCount, chromeFont]}>
-              {`${ordered.length} of ${QUOTES.length}`}
-            </Text>
+            <Text style={[styles.sheetCount, chromeFont]}>{countLabel}</Text>
           </View>
+
+          {collected.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.filterRow}
+              contentContainerStyle={styles.filterRowContent}
+              testID="seen-filters"
+            >
+              <Pressable
+                onPress={() => setTierFilter(null)}
+                testID="seen-filter-all"
+                style={[
+                  styles.filterChip,
+                  !tierFilter && styles.filterChipOn,
+                  !tierFilter && { borderColor: BRAND.cream },
+                ]}
+              >
+                <Text style={[styles.filterChipText, chromeFont]}>
+                  {`All ${seen.length}`}
+                </Text>
+              </Pressable>
+              {collected.map((tier) => {
+                const on = tierFilter === tier.id;
+                return (
+                  <Pressable
+                    key={tier.id}
+                    onPress={() => setTierFilter(on ? null : tier.id)}
+                    testID={`seen-filter-${tier.id}`}
+                    style={[
+                      styles.filterChip,
+                      { borderColor: tier.color },
+                      on && styles.filterChipOn,
+                      on && { backgroundColor: tier.color },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        chromeFont,
+                        !on && { color: tier.color },
+                      ]}
+                    >
+                      {`${tier.short} ${counts.get(tier.id)}`}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
 
           {ordered.length === 0 ? (
             <Text style={[styles.sheetEmpty, chromeFont]}>
@@ -927,6 +1000,29 @@ const styles = StyleSheet.create({
   },
   sheetScroll: {
     flexGrow: 0,
+  },
+  filterRow: {
+    flexGrow: 0,
+    marginBottom: 14,
+  },
+  filterRowContent: {
+    gap: 8,
+    paddingRight: 4,
+  },
+  filterChip: {
+    borderWidth: 1.5,
+    borderColor: "rgba(247, 243, 234, 0.45)",
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 13,
+  },
+  filterChipOn: {
+    backgroundColor: "rgba(247, 243, 234, 0.22)",
+  },
+  filterChipText: {
+    color: BRAND.cream,
+    fontSize: 11,
+    letterSpacing: 1,
   },
   sheetScrollContent: {
     paddingBottom: 8,

@@ -33,6 +33,18 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-19: Seen filters by tier
+
+- `App.js`: the Seen sheet gains a chip row filtering by rarity. Only tiers
+  the user has actually pulled are offered, so the filter never hints at what
+  is still out there. Chips carry their tier colour and a count, the filter
+  clears when the sheet reopens, and the row hides entirely below two tiers.
+- `rarity.js`: added `short` labels for the chips, since "Somewhere between
+  rare and legendary" does not fit on one. `tierOf()` is now memoised: it runs
+  per render, per Seen row, and per candidate on every weighted pull, and it
+  was taking the test suite from 5s to 338s on its own.
+- `patchNotes.js`: the tier section is headed "Seven deadly tiers".
+
 ### 2026-08-19: The rarity update
 
 - `rarity.js`: new file. Seven tiers from "Super ultra mega common" down to
@@ -60,15 +72,3 @@ message and push to `origin`.
 - `README.md`: fixed while in there. It still described the removed Copy
   button, the emoji on Shuffle, "~500 quotes", and a 3-day schedule. Now
   documents the current app, and the quote-authoring rules live in one place.
-
-### 2026-08-19: In-app "What's new?" patch notes
-
-- `patchNotes.js`: new file holding release notes as structured data (version,
-  date, sections of bullets), written in the app's sarcastic voice.
-- `App.js`: small "What's new?" control in the top-right, opening a
-  `PatchNotesSheet` styled to match the Seen sheet. Deliberately rendered
-  outside the capture layer so it never appears in a shared image.
-- `__tests__/startup.test.js`: covers the button, sheet contents, ordering,
-  and exclusion from shares. Also rescoped the icon-glyph test to the buttons
-  themselves, it scanned the whole tree and would trip over any unrelated
-  copy containing "Share".

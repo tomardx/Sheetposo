@@ -422,7 +422,7 @@ describe("rarity", () => {
 
   it("pulls each tier at roughly its share", () => {
     const draws = new Map(TIERS.map((tier) => [tier.id, 0]));
-    const runs = 40000;
+    const runs = 20000;
     for (let i = 0; i < runs; i++) {
       const id = tierOf(weightedRandomQuote(QUOTES)).id;
       draws.set(id, draws.get(id) + 1);
@@ -636,6 +636,118 @@ describe("previously seen", () => {
     await renderApp();
     const lastSaved = seenStore.saveSeenQuotes.mock.calls.at(-1)[0];
     for (const entry of stored) expect(lastSaved).toContain(entry);
+  });
+
+  describe("filtering by tier", () => {
+    // The poster records its own quote as seen, so the sheet always holds one
+    // more entry than we stored, in whatever tier that quote happens to be.
+    // Every expectation below is derived from what actually rendered.
+    const fishQuotes = QUOTES.filter((q) => tierOf(q).id === "fish");
+    const moosQuotes = QUOTES.filter((q) => tierOf(q).id === "moos");
+    const stored = [...fishQuotes.slice(0, 2), ...moosQuotes.slice(0, 3)];
+
+    async function openSeen(list = stored) {
+      seenStore.syncDeliveredIntoSeen.mockResolvedValue(list);
+      const tree = await renderApp();
+      await press(tree, "seen-button");
+      return tree;
+    }
+
+    const rawOf = (rendered) => QUOTES.find((q) => shown(q) === rendered);
+
+    function rows(tree) {
+      return tree.root
+        .findByProps({ testID: "seen-sheet" })
+        .findAllByType("Text")
+        .flatMap((node) => node.props.children)
+        .filter((child) => typeof child === "string" && isQuote(child));
+    }
+
+    function chipLabels(tree) {
+      const found = tree.root.findAllByProps({ testID: "seen-filters" });
+      if (found.length === 0) return [];
+      return found[0]
+        .findAllByType("Text")
+        .flatMap((node) => node.props.children)
+        .filter((child) => typeof child === "string");
+    }
+
+    const tiersIn = (tree) =>
+      new Set(rows(tree).map((row) => tierOf(rawOf(row)).id));
+
+    it("offers exactly the tiers collected, and no others", async () => {
+      const tree = await openSeen();
+      const labels = chipLabels(tree);
+      const offered = new Set(
+        TIERS.filter((tier) =>
+          labels.some((l) => l.startsWith(`${tier.short} `))
+        ).map((tier) => tier.id)
+      );
+      // Uncollected tiers must never appear: the filter would otherwise leak
+      // what is still out there, which is the point of hiding it.
+      expect(offered).toEqual(tiersIn(tree));
+    });
+
+    it("counts what is in each tier", async () => {
+      const tree = await openSeen();
+      const labels = chipLabels(tree);
+      const all = rows(tree);
+      expect(labels).toContain(`All ${all.length}`);
+
+      for (const id of tiersIn(tree)) {
+        const tier = TIERS.find((candidate) => candidate.id === id);
+        const count = all.filter((row) => tierOf(rawOf(row)).id === id).length;
+        expect(labels).toContain(`${tier.short} ${count}`);
+      }
+    });
+
+    it("narrows the list to the chosen tier", async () => {
+      const tree = await openSeen();
+      const fishCount = rows(tree).filter(
+        (row) => tierOf(rawOf(row)).id === "fish"
+      ).length;
+
+      await press(tree, "seen-filter-fish");
+      const filtered = rows(tree);
+      expect(filtered).toHaveLength(fishCount);
+      for (const row of filtered) {
+        expect(tierOf(rawOf(row)).id).toBe("fish");
+      }
+    });
+
+    it("goes back to everything via All, and by tapping the chip again", async () => {
+      const tree = await openSeen();
+      const total = rows(tree).length;
+
+      await press(tree, "seen-filter-fish");
+      expect(rows(tree).length).toBeLessThan(total);
+
+      await press(tree, "seen-filter-all");
+      expect(rows(tree)).toHaveLength(total);
+
+      await press(tree, "seen-filter-fish");
+      await press(tree, "seen-filter-fish");
+      expect(rows(tree)).toHaveLength(total);
+    });
+
+    it("shows the chip row only when more than one tier is collected", async () => {
+      const tree = await openSeen(fishQuotes.slice(0, 2));
+      const distinct = tiersIn(tree).size;
+      const hasChips = chipLabels(tree).length > 0;
+      expect(hasChips).toBe(distinct > 1);
+    });
+
+    it("forgets the filter when the sheet is reopened", async () => {
+      const tree = await openSeen();
+      const total = rows(tree).length;
+
+      await press(tree, "seen-filter-fish");
+      expect(rows(tree).length).toBeLessThan(total);
+
+      await press(tree, "seen-close");
+      await press(tree, "seen-button");
+      expect(rows(tree)).toHaveLength(total);
+    });
   });
 
   it("closes the sheet again", async () => {

@@ -5,6 +5,9 @@
 // A pull picks a tier by share, then a quote uniformly inside it, so the felt
 // rarity stays put no matter how many lines a tier gains or loses.
 //
+// `short` is the chip label in the Seen filter, where the full name does not
+// fit. The full one is the joke and is used everywhere it has room.
+//
 // `motion` drives the poster:
 //   0  nothing
 //   1  a slow breath on the background
@@ -14,6 +17,7 @@ export const TIERS = [
   {
     id: "ultracommon",
     label: "Super ultra mega common",
+    short: "Ultra common",
     color: "#8A9A83",
     gradient: ["#9BAA93", "#8A9A83", "#6E7F68"],
     share: 0.46,
@@ -22,6 +26,7 @@ export const TIERS = [
   {
     id: "common",
     label: "Embarrassingly common",
+    short: "Embarrassing",
     color: "#8A8578",
     gradient: ["#9A9587", "#8A8578", "#6E6A5E"],
     share: 0.24,
@@ -30,6 +35,7 @@ export const TIERS = [
   {
     id: "uncommon",
     label: "Sooo uncommon",
+    short: "Sooo uncommon",
     color: "#6E8F8A",
     gradient: ["#7FA09A", "#6E8F8A", "#54706C"],
     share: 0.16,
@@ -38,6 +44,7 @@ export const TIERS = [
   {
     id: "between",
     label: "Somewhere between rare and legendary",
+    short: "Rare-ish",
     color: "#7B7FA8",
     gradient: ["#8D91B8", "#7B7FA8", "#5C6083"],
     share: 0.085,
@@ -46,6 +53,7 @@ export const TIERS = [
   {
     id: "moos",
     label: "So rare it still moos",
+    short: "Moos",
     color: "#B3765C",
     gradient: ["#C68A6E", "#B3765C", "#8A5843"],
     share: 0.035,
@@ -54,6 +62,7 @@ export const TIERS = [
   {
     id: "unverified",
     label: "Legendary (unverified)",
+    short: "Legendary",
     color: "#A8841B",
     gradient: ["#C29C2A", "#A8841B", "#7A5F10"],
     share: 0.015,
@@ -63,6 +72,7 @@ export const TIERS = [
     // Lowercase on purpose. Do not fix it.
     id: "fish",
     label: "fish",
+    short: "fish",
     color: "#2E8B93",
     gradient: ["#3AA6A0", "#2E8B93", "#1E626B"],
     share: 0.005,
@@ -235,10 +245,23 @@ function stableHash(text) {
 // difference between them is a joke about wording, not about quality.
 const COMMON_SPLIT = 58;
 
+// Memoised: this runs on every render, for every row of the Seen list, and
+// once per candidate on every weighted pull, so the hash should happen once
+// per quote rather than once per lookup.
+const TIER_CACHE = new Map();
+
 export function tierOf(quote) {
+  const cached = TIER_CACHE.get(quote);
+  if (cached) return cached;
+
   const assigned = RARITY[quote];
-  if (assigned) return tierById(assigned);
-  return stableHash(quote) < COMMON_SPLIT ? TIERS[0] : TIERS[1];
+  const tier = assigned
+    ? tierById(assigned)
+    : stableHash(quote) < COMMON_SPLIT
+      ? TIERS[0]
+      : TIERS[1];
+  TIER_CACHE.set(quote, tier);
+  return tier;
 }
 
 export function tierLevel(quote) {

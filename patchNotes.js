@@ -9,12 +9,13 @@ export const PATCH_NOTES = [
     title: "The rarity update (like my mom says i am)",
     sections: [
       {
-        heading: "Added",
+        heading: "Seven deadly tiers",
         items: [
           "Quotes now have a rarity. Seven of them, from “Super ultra mega common” down to “fish”.",
           "Every rarity has its own colour. The screen, the notification, and your Seen list all wear it.",
           "The rarer the quote, the more the screen moves. The common ones sit perfectly still, as they deserve.",
           "A new sound for the two rarest tiers. It is short, it is triumphant, and it is not the bleep.",
+          "Seen now filters by tier, but only by the ones you have actually pulled. We are not telling you what is left.",
         ],
       },
       {
