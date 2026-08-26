@@ -24,6 +24,18 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-19 — In-app "What's new?" patch notes
+
+- `patchNotes.js`: new file holding release notes as structured data (version,
+  date, sections of bullets), written in the app's sarcastic voice.
+- `App.js`: small "What's new?" control in the top-right, opening a
+  `PatchNotesSheet` styled to match the Seen sheet. Deliberately rendered
+  outside the capture layer so it never appears in a shared image.
+- `__tests__/startup.test.js`: covers the button, sheet contents, ordering,
+  and exclusion from shares. Also rescoped the icon-glyph test to the buttons
+  themselves — it scanned the whole tree and would trip over any unrelated
+  copy containing "Share".
+
 ### 2026-08-19 — Punctuation pass, 454 new quotes, rarity proposal
 
 - `quotes.js`: punctuated all 312 existing quotes (contractions, terminal

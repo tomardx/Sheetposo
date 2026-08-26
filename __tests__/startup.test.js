@@ -164,11 +164,18 @@ describe("app startup", () => {
     const tree = await renderApp();
     // No icon font means no glyph can silently fail to render.
     expect(tree.root.findAllByType("Image")).toHaveLength(1); // watermark only
-    for (const label of ["Shuffle", "Share"]) {
-      expect(visibleText(tree)).toContain(label);
-      expect(
-        visibleText(tree).some((t) => t !== label && t.includes(label))
-      ).toBe(false);
+    // Scoped to each button: scanning the whole tree would trip over any
+    // unrelated copy that happens to contain the word.
+    for (const [testID, label] of [
+      ["shuffle-button", "Shuffle"],
+      ["share-button", "Share"],
+    ]) {
+      const inside = tree.root
+        .findByProps({ testID })
+        .findAllByType("Text")
+        .flatMap((node) => node.props.children)
+        .filter((child) => typeof child === "string");
+      expect(inside).toEqual([label]);
     }
   });
 
@@ -349,6 +356,85 @@ describe("sharing", () => {
     expect(Sharing.shareAsync).not.toHaveBeenCalled();
     expect(visibleText(tree)).toContain("Sharing unavailable.");
     expectNoCrash(tree);
+  });
+});
+
+describe("what's new", () => {
+  const { PATCH_NOTES } = require("../patchNotes");
+
+  function press(tree, testID) {
+    return act(async () => {
+      tree.root.findByProps({ testID }).props.onPress();
+    });
+  }
+
+  function sheetText(tree) {
+    return tree.root
+      .findByProps({ testID: "patch-notes-sheet" })
+      .findAllByType("Text")
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string");
+  }
+
+  it("mounts the button and keeps the sheet shut until asked", async () => {
+    const tree = await renderApp();
+    expect(visibleText(tree)).toContain("What's new?");
+    expect(
+      tree.root.findByProps({ testID: "patch-notes-sheet" }).props.visible
+    ).toBe(false);
+  });
+
+  it("opens onto the newest release first", async () => {
+    const tree = await renderApp();
+    await press(tree, "whats-new-button");
+
+    const text = sheetText(tree);
+    const newest = PATCH_NOTES[0];
+    expect(text).toContain(`${newest.version} — ${newest.title}`);
+    expect(text).toContain(newest.date);
+  });
+
+  it("lists every release, with its date and its bullets", async () => {
+    const tree = await renderApp();
+    await press(tree, "whats-new-button");
+
+    const text = sheetText(tree);
+    for (const release of PATCH_NOTES) {
+      expect(text).toContain(release.date);
+      for (const section of release.sections) {
+        expect(text).toContain(section.heading);
+        for (const item of section.items) expect(text).toContain(item);
+      }
+    }
+  });
+
+  it("closes again", async () => {
+    const tree = await renderApp();
+    await press(tree, "whats-new-button");
+    expect(
+      tree.root.findByProps({ testID: "patch-notes-sheet" }).props.visible
+    ).toBe(true);
+    await press(tree, "patch-notes-close");
+    expect(
+      tree.root.findByProps({ testID: "patch-notes-sheet" }).props.visible
+    ).toBe(false);
+  });
+
+  it("stays out of the shared image", async () => {
+    const tree = await renderApp();
+    const captureText = tree.root
+      .findByProps({ testID: "capture-layer" })
+      .findAllByType("Text")
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string");
+    expect(captureText).not.toContain("What's new?");
+  });
+
+  it("keeps the notes newest first", () => {
+    const dates = PATCH_NOTES.map((r) => Date.parse(r.date));
+    for (let i = 1; i < dates.length; i++) {
+      expect(dates[i - 1]).toBeGreaterThan(dates[i]);
+    }
   });
 });
 

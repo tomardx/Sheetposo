@@ -4,8 +4,10 @@ import {
   AppState,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
+  StatusBar as SystemStatusBar,
   StyleSheet,
   Text,
   View,
@@ -29,6 +31,7 @@ import {
   rescheduleIfNeeded,
 } from "./notifications";
 import ErrorBoundary, { installGlobalErrorHandler } from "./ErrorBoundary";
+import { PATCH_NOTES } from "./patchNotes";
 import {
   presentedQuotes,
   saveSeenQuotes,
@@ -174,6 +177,7 @@ function Poster() {
   const [seen, setSeen] = useState([]);
   const [seenLoaded, setSeenLoaded] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setSplashTimedOut(true), SPLASH_TIMEOUT_MS);
@@ -364,6 +368,19 @@ function Poster() {
         <PosterFace background={background} quote={quote} />
       </View>
 
+      {/* Deliberately outside the capture layer, so it never lands in a
+          shared image. */}
+      <Pressable
+        onPress={() => setNotesOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="What's new"
+        testID="whats-new-button"
+        hitSlop={12}
+        style={({ pressed }) => [styles.whatsNew, pressed && styles.whatsNewPressed]}
+      >
+        <Text style={[styles.whatsNewText, chromeFont]}>What's new?</Text>
+      </Pressable>
+
       <View style={styles.footer} pointerEvents="box-none">
         {toastMessage && (
           <Animated.View
@@ -420,6 +437,12 @@ function Poster() {
         <Text style={[styles.brand, chromeFont]}>SHEETPOSO</Text>
       </View>
 
+      <PatchNotesSheet
+        visible={notesOpen}
+        chromeFont={chromeFont}
+        onClose={() => setNotesOpen(false)}
+      />
+
       <SeenSheet
         visible={historyOpen}
         seen={seen}
@@ -432,6 +455,79 @@ function Poster() {
         }}
       />
     </View>
+  );
+}
+
+// Patch notes, laid out like a changelog: version and date, then a heading
+// per group with its bullets. Rendered natively rather than parsed from
+// markdown, which keeps the type on the brand's scale and adds no dependency.
+function PatchNotesSheet({ visible, chromeFont, onClose }) {
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+      testID="patch-notes-sheet"
+    >
+      <View style={styles.sheetBackdrop}>
+        <View style={styles.sheet}>
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sheetTitle, chromeFont]}>What's new?</Text>
+            <Text style={[styles.sheetCount, chromeFont]}>
+              nothing important
+            </Text>
+          </View>
+
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.notesContent}
+          >
+            {PATCH_NOTES.map((release) => (
+              <View key={release.version} style={styles.release}>
+                <View style={styles.releaseHead}>
+                  <Text style={[styles.releaseVersion, chromeFont]}>
+                    {`${release.version} — ${release.title}`}
+                  </Text>
+                  <Text style={[styles.releaseDate, chromeFont]}>
+                    {release.date}
+                  </Text>
+                </View>
+
+                {release.sections.map((section) => (
+                  <View key={section.heading} style={styles.releaseSection}>
+                    <Text style={[styles.releaseHeading, chromeFont]}>
+                      {section.heading}
+                    </Text>
+                    {section.items.map((item, i) => (
+                      <View key={i} style={styles.bulletRow}>
+                        <Text style={styles.bulletDot}>•</Text>
+                        <Text style={styles.bulletText}>{item}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            ))}
+          </ScrollView>
+
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            testID="patch-notes-close"
+            style={({ pressed }) => [
+              styles.pill,
+              styles.actionButton,
+              styles.sheetClose,
+              pressed && styles.pillPressed,
+            ]}
+          >
+            <Text style={[styles.pillText, chromeFont]}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -632,6 +728,72 @@ const styles = StyleSheet.create({
     color: "rgba(247, 243, 234, 0.6)",
     fontSize: 12,
     letterSpacing: 4,
+  },
+  // Top-right, clear of the quote and below the status bar.
+  whatsNew: {
+    position: "absolute",
+    right: 16,
+    top: (Platform.OS === "android" ? SystemStatusBar.currentHeight ?? 24 : 44) + 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+  whatsNewPressed: {
+    backgroundColor: "rgba(110, 127, 104, 0.45)",
+  },
+  whatsNewText: {
+    color: "rgba(247, 243, 234, 0.72)",
+    fontSize: 12,
+    letterSpacing: 1.2,
+  },
+  notesContent: {
+    paddingBottom: 8,
+    gap: 22,
+  },
+  release: {
+    gap: 12,
+  },
+  releaseHead: {
+    gap: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(247, 243, 234, 0.22)",
+    paddingBottom: 8,
+  },
+  releaseVersion: {
+    color: BRAND.cream,
+    fontSize: 15,
+    letterSpacing: 1,
+  },
+  releaseDate: {
+    color: BRAND.sand,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    opacity: 0.85,
+  },
+  releaseSection: {
+    gap: 6,
+  },
+  releaseHeading: {
+    color: BRAND.sand,
+    fontSize: 11,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
+  },
+  bulletRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingRight: 4,
+  },
+  bulletDot: {
+    color: "rgba(247, 243, 234, 0.55)",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  bulletText: {
+    flex: 1,
+    color: BRAND.cream,
+    fontSize: 13.5,
+    lineHeight: 20,
   },
   sheetBackdrop: {
     flex: 1,
