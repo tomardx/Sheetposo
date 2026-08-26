@@ -33,6 +33,21 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-26: Ship the rationing and the Seen fix over the air
+
+- `app.json`: version back to 1.1.1. The runtime policy is `appVersion`, so an
+  update published as 1.1.2 would only reach 1.1.2 binaries, and none exist.
+  Testers are on the 1.1.1 build, which is the first one carrying
+  expo-updates.
+- `patchNotes.js`: the two 1.1.1 entries merged into one. The readability
+  fixes went out with the build and the rationing and Seen fix go out over the
+  air on the same version, so two entries sharing a version number would have
+  read as a bug.
+- Verified OTA-safe: nothing since the 1.1.1 build touches native code or
+  dependencies. shuffleBudget.js uses AsyncStorage, which that binary already
+  has.
+- Publish with `eas update --branch production`.
+
 ### 2026-08-26: Stop the Seen count going past the total
 
 - `seenQuotes.js`: history is keyed by text, which survives a reordered list
@@ -71,22 +86,3 @@ message and push to `origin`.
 Worth knowing: notifications draw from the whole quote list and have never
 excluded seen quotes, so reaching the end of the collection does not stop them.
 They just repeat.
-
-### 2026-08-26: Make the Seen filters readable, and add expo-updates
-
-- `App.js`, `backgrounds.js`: a tester could not read the tier chips. They were
-  drawn in their own tier colour on a background of nearly that colour, and
-  several tiers sit within a hair of sage. Chips now use a new `BRAND.ink`
-  (near-black, picked so it clears 4.5:1 against all seven tiers), an ink
-  border so the pill is always visible, and a tier-coloured dot to keep the
-  colour link to the rows. The row wraps instead of scrolling horizontally,
-  which is what made the chips look like they had moved. Chip height is fixed
-  so Poppins stops getting bottom-clipped. Same fix for the rarity label under
-  each quote, and "What's new?" gained a backdrop.
-- `__tests__/startup.test.js`: new test computing WCAG contrast for the chip
-  text against every tier and for the rarity label against the row, so
-  "you can't see anything" is now a number that fails a build.
-- `app.json`, `eas.json`, `package.json`: added expo-updates with the
-  appVersion runtime policy and a channel per build profile, so the next
-  JS-only fix ships without a store release. Version bumped to 1.1.1.
-- `patchNotes.js`: 1.1.1 entry.
