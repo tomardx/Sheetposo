@@ -4,6 +4,29 @@
 // Keep entries short. Nobody has ever wanted longer patch notes.
 export const PATCH_NOTES = [
   {
+    version: "1.1.2",
+    date: "26 August 2026",
+    title: "The rationing update",
+    sections: [
+      {
+        heading: "Changed",
+        items: [
+          "Shuffle is now twice a day. This is not a bug, it is a boundary.",
+          "The clock starts on your first shuffle, not at midnight, so there is nothing to stay up for.",
+          "Notifications are untouched. They were always the point. Shuffle was a snack.",
+        ],
+      },
+      {
+        heading: "Why",
+        items: [
+          "Somebody read 765 of the 766 quotes in one sitting. In an afternoon. On purpose.",
+          "He has now finished the app and has nothing left to look forward to. Learn from him.",
+          "The last one is still out there. He will have to wait like everyone else.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.1.1",
     date: "26 August 2026",
     title: "The one where you could see it",

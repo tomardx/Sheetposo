@@ -33,6 +33,25 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-26: Ration the Shuffle button
+
+- `shuffleBudget.js` (new): two shuffles per rolling 24 hours. The window opens
+  at the first shuffle rather than at midnight, so shuffling at 23:55 does not
+  buy a fresh pair five minutes later. Stored in AsyncStorage, fails open on a
+  read error, and clamps a tampered count.
+- `App.js`: Shuffle spends from the budget, dims when spent, and stays
+  pressable so the toast can say when it returns. A line under the button shows
+  what is left.
+- `__tests__/startup.test.js`: 12 tests. The AsyncStorage mock is now a real
+  in-memory store, because the old stub returned null for every read and would
+  have let an exhausted budget silently refill. Sabotage-checked: removing the
+  limit fails three of them.
+- Version 1.1.2, with a patch note.
+
+Worth knowing: notifications draw from the whole quote list and have never
+excluded seen quotes, so reaching the end of the collection does not stop them.
+They just repeat.
+
 ### 2026-08-26: Make the Seen filters readable, and add expo-updates
 
 - `App.js`, `backgrounds.js`: a tester could not read the tier chips. They were
@@ -57,11 +76,3 @@ message and push to `origin`.
 - `app.json`: version was still 1.0.0 while the in-app patch notes announced
   1.1.0, so Google Play would have shown testers the wrong number. versionCode
   is untouched, EAS manages it remotely.
-
-### 2026-08-19: Bring RARITY.md up to date
-
-- `RARITY.md`: rewritten. It still opened with "proposal, not built" and
-  described tier names, colours, and a weighting scheme that were all replaced
-  before shipping, so it actively misdescribed the app. Now documents the
-  shipped tiers, how a pull works, where rarity shows up, and how to promote a
-  quote.

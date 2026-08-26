@@ -2,12 +2,24 @@
 // bundle check cannot do: a missing named export is `undefined` at runtime and
 // bundles cleanly, but throws the moment it is called.
 import renderer, { act } from "react-test-renderer";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StyleSheet, Text } from "react-native";
 import App from "../App";
 import ErrorBoundary from "../ErrorBoundary";
 import { QUOTES, formatQuote } from "../quotes";
 import { BACKGROUNDS, BRAND } from "../backgrounds";
 import { RARITY, TIERS, tierOf, weightedRandomQuote } from "../rarity";
+import {
+  SHUFFLE_LIMIT,
+  WINDOW_MS,
+  budgetAt,
+  loadShuffleBudget,
+  spendShuffle,
+  timeUntil,
+} from "../shuffleBudget";
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
 
 // Quotes are stored lowercase and capitalised at display time, so anything
 // compared against rendered text has to go through formatQuote first.
@@ -64,10 +76,22 @@ jest.mock("expo-notifications", () => ({
   SchedulableTriggerInputTypes: { DATE: "date" },
 }));
 
-jest.mock("@react-native-async-storage/async-storage", () => ({
-  getItem: jest.fn(() => Promise.resolve(null)),
-  setItem: jest.fn(() => Promise.resolve()),
-}));
+// A real in-memory store, not a stub returning null. The shuffle budget is
+// only interesting once a write can be read back, and a stub that forgets
+// every write would let an exhausted budget silently refill.
+jest.mock("@react-native-async-storage/async-storage", () => {
+  const store = new Map();
+  return {
+    getItem: jest.fn((key) =>
+      Promise.resolve(store.has(key) ? store.get(key) : null)
+    ),
+    setItem: jest.fn((key, value) => {
+      store.set(key, value);
+      return Promise.resolve();
+    }),
+    __reset: () => store.clear(),
+  };
+});
 
 jest.mock("./../seenQuotes", () => ({
   loadSeenQuotes: jest.fn(() => Promise.resolve([])),
@@ -97,6 +121,10 @@ afterEach(async () => {
     for (const tree of trees) tree.unmount();
   });
   trees = [];
+});
+
+beforeEach(() => {
+  AsyncStorage.__reset();
 });
 
 function visibleText(tree) {
@@ -827,6 +855,127 @@ describe("previously seen", () => {
 
 // The reported bug was notifications arriving 2-3 at a time. One cause was
 // Android batching inexact alarms; the other was here, in the time picking.
+describe("rationed shuffles", () => {
+  function press(tree, testID) {
+    return act(async () => {
+      tree.root.findByProps({ testID }).props.onPress();
+    });
+  }
+
+  const quoteOn = (tree) =>
+    visibleText(tree).find((text) => isQuote(text));
+
+  const budgetLine = (tree) =>
+    tree.root.findByProps({ testID: "shuffle-budget" }).props.children;
+
+  it("starts with the full allowance", async () => {
+    const tree = await renderApp();
+    expect(budgetLine(tree)).toBe(`${SHUFFLE_LIMIT} left`);
+  });
+
+  it("spends one per shuffle and changes the quote", async () => {
+    const tree = await renderApp();
+    const before = quoteOn(tree);
+    await press(tree, "shuffle-button");
+    expect(budgetLine(tree)).toBe(`${SHUFFLE_LIMIT - 1} left`);
+    // The list is long enough that a repeat here would mean the shuffle did
+    // not happen, not that it got unlucky: randomQuote excludes the current.
+    expect(quoteOn(tree)).not.toBe(before);
+  });
+
+  it("refuses the shuffle after the limit and leaves the quote alone", async () => {
+    const tree = await renderApp();
+    for (let i = 0; i < SHUFFLE_LIMIT; i++) {
+      await press(tree, "shuffle-button");
+    }
+    const stranded = quoteOn(tree);
+
+    await press(tree, "shuffle-button");
+    expect(quoteOn(tree)).toBe(stranded);
+    expect(visibleText(tree).some((t) => t.startsWith("That was your last one")))
+      .toBe(true);
+
+    // And it stays refused, rather than the toast being a one-off.
+    await press(tree, "shuffle-button");
+    expect(quoteOn(tree)).toBe(stranded);
+  });
+
+  it("survives a relaunch: the window is stored, not held in memory", async () => {
+    const first = await renderApp();
+    for (let i = 0; i < SHUFFLE_LIMIT; i++) {
+      await press(first, "shuffle-button");
+    }
+
+    const second = await renderApp();
+    const stranded = quoteOn(second);
+    await press(second, "shuffle-button");
+    expect(quoteOn(second)).toBe(stranded);
+  });
+
+  describe("the window itself", () => {
+    const NOON = Date.parse("2026-08-26T12:00:00Z");
+
+    it("opens at the first shuffle, not at midnight", () => {
+      const opened = { startedAt: NOON, used: 1 };
+      expect(budgetAt(opened, NOON + HOUR).resetsAt).toBe(NOON + WINDOW_MS);
+    });
+
+    it("holds the limit for the whole window", () => {
+      const spent = { startedAt: NOON, used: SHUFFLE_LIMIT };
+      expect(budgetAt(spent, NOON + WINDOW_MS - 1).remaining).toBe(0);
+    });
+
+    it("refills the moment the window closes", () => {
+      const spent = { startedAt: NOON, used: SHUFFLE_LIMIT };
+      const after = budgetAt(spent, NOON + WINDOW_MS);
+      expect(after.remaining).toBe(SHUFFLE_LIMIT);
+      expect(after.resetsAt).toBe(0);
+    });
+
+    it("does not refill early for someone who shuffles late at night", async () => {
+      const LATE = Date.parse("2026-08-26T23:55:00Z");
+      await spendShuffle(LATE);
+      await spendShuffle(LATE);
+      // Five minutes later it is a new calendar day, and that must not matter.
+      const midnight = Date.parse("2026-08-27T00:00:00Z");
+      expect((await loadShuffleBudget(midnight)).remaining).toBe(0);
+      expect((await loadShuffleBudget(LATE + WINDOW_MS)).remaining).toBe(
+        SHUFFLE_LIMIT
+      );
+    });
+
+    it("reports a refusal rather than silently spending nothing", async () => {
+      for (let i = 0; i < SHUFFLE_LIMIT; i++) {
+        expect((await spendShuffle(NOON)).spent).toBe(true);
+      }
+      expect((await spendShuffle(NOON)).spent).toBe(false);
+    });
+
+    it("fails open on unreadable storage instead of locking the button", async () => {
+      AsyncStorage.getItem.mockRejectedValueOnce(new Error("storage gone"));
+      expect((await loadShuffleBudget(NOON)).remaining).toBe(SHUFFLE_LIMIT);
+    });
+
+    it("clamps a tampered count instead of trusting it", () => {
+      const absurd = { startedAt: NOON, used: -50 };
+      expect(budgetAt(absurd, NOON).remaining).toBe(SHUFFLE_LIMIT);
+      const alsoAbsurd = { startedAt: NOON, used: 9999 };
+      expect(budgetAt(alsoAbsurd, NOON).remaining).toBe(0);
+    });
+  });
+
+  describe("the countdown", () => {
+    it("rounds to something a person would say", () => {
+      const now = 1_000_000;
+      expect(timeUntil(now + 30 * 1000, now)).toBe("under a minute");
+      expect(timeUntil(now + 12 * MINUTE, now)).toBe("12m");
+      expect(timeUntil(now + 6 * HOUR, now)).toBe("6h");
+      expect(timeUntil(now + 6 * HOUR + 30 * MINUTE, now)).toBe("6h 30m");
+      expect(timeUntil(now - 1, now)).toBe("now");
+    });
+  });
+});
+
 describe("notification scheduling", () => {
   const { randomTimesForDay } = require("../notifications");
   const MIN_GAP_MS = 25 * 60 * 1000;
