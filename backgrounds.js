@@ -9,6 +9,11 @@ export const BRAND = {
   sageDeep: "#6E7F68",
   sageLight: "#9BAA93",
   cream: "#F7F3EA",
+  // Effectively black, with just enough green to sit in the palette. Used for
+  // text on sage or on a tier colour, where cream disappears entirely. It has
+  // to clear 4.5:1 against every tier, and "fish" teal is the tight one, so
+  // this cannot be lightened without a test failing.
+  ink: "#0E120D",
   sand: "#D9CDB6",
   terracotta: "#B3765C",
 };

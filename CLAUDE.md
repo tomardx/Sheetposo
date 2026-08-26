@@ -33,6 +33,25 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-26: Make the Seen filters readable, and add expo-updates
+
+- `App.js`, `backgrounds.js`: a tester could not read the tier chips. They were
+  drawn in their own tier colour on a background of nearly that colour, and
+  several tiers sit within a hair of sage. Chips now use a new `BRAND.ink`
+  (near-black, picked so it clears 4.5:1 against all seven tiers), an ink
+  border so the pill is always visible, and a tier-coloured dot to keep the
+  colour link to the rows. The row wraps instead of scrolling horizontally,
+  which is what made the chips look like they had moved. Chip height is fixed
+  so Poppins stops getting bottom-clipped. Same fix for the rarity label under
+  each quote, and "What's new?" gained a backdrop.
+- `__tests__/startup.test.js`: new test computing WCAG contrast for the chip
+  text against every tier and for the rarity label against the row, so
+  "you can't see anything" is now a number that fails a build.
+- `app.json`, `eas.json`, `package.json`: added expo-updates with the
+  appVersion runtime policy and a channel per build profile, so the next
+  JS-only fix ships without a store release. Version bumped to 1.1.1.
+- `patchNotes.js`: 1.1.1 entry.
+
 ### 2026-08-19: Bump the app version to 1.1.0
 
 - `app.json`: version was still 1.0.0 while the in-app patch notes announced
@@ -46,15 +65,3 @@ message and push to `origin`.
   before shipping, so it actively misdescribed the app. Now documents the
   shipped tiers, how a pull works, where rarity shows up, and how to promote a
   quote.
-
-### 2026-08-19: Seen filters by tier
-
-- `App.js`: the Seen sheet gains a chip row filtering by rarity. Only tiers
-  the user has actually pulled are offered, so the filter never hints at what
-  is still out there. Chips carry their tier colour and a count, the filter
-  clears when the sheet reopens, and the row hides entirely below two tiers.
-- `rarity.js`: added `short` labels for the chips, since "Somewhere between
-  rare and legendary" does not fit on one. `tierOf()` is now memoised: it runs
-  per render, per Seen row, and per candidate on every weighted pull, and it
-  was taking the test suite from 5s to 338s on its own.
-- `patchNotes.js`: the tier section is headed "Seven deadly tiers".

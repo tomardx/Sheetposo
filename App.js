@@ -663,20 +663,16 @@ function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
           </View>
 
           {collected.length > 1 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.filterRow}
-              contentContainerStyle={styles.filterRowContent}
-              testID="seen-filters"
-            >
+            // Wraps rather than scrolls. There are never more than eight
+            // chips, and a horizontal scroller gave no hint that the ones
+            // past the edge existed.
+            <View style={styles.filterRow} testID="seen-filters">
               <Pressable
                 onPress={() => setTierFilter(null)}
                 testID="seen-filter-all"
                 style={[
                   styles.filterChip,
                   !tierFilter && styles.filterChipOn,
-                  !tierFilter && { borderColor: BRAND.cream },
                 ]}
               >
                 <Text style={[styles.filterChipText, chromeFont]}>
@@ -692,24 +688,20 @@ function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
                     testID={`seen-filter-${tier.id}`}
                     style={[
                       styles.filterChip,
-                      { borderColor: tier.color },
                       on && styles.filterChipOn,
                       on && { backgroundColor: tier.color },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        chromeFont,
-                        !on && { color: tier.color },
-                      ]}
-                    >
+                    <View
+                      style={[styles.filterDot, { backgroundColor: tier.color }]}
+                    />
+                    <Text style={[styles.filterChipText, chromeFont]}>
                       {`${tier.short} ${counts.get(tier.id)}`}
                     </Text>
                   </Pressable>
                 );
               })}
-            </ScrollView>
+            </View>
           )}
 
           {ordered.length === 0 ? (
@@ -734,9 +726,7 @@ function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
                     ]}
                   >
                     <Text style={styles.seenText}>{formatQuote(entry)}</Text>
-                    <Text style={[styles.seenTier, { color: tier.color }]}>
-                      {tier.label}
-                    </Text>
+                    <Text style={styles.seenTier}>{tier.label}</Text>
                   </Pressable>
                 );
               })}
@@ -901,14 +891,17 @@ const styles = StyleSheet.create({
     right: 16,
     top: (Platform.OS === "android" ? SystemStatusBar.currentHeight ?? 24 : 44) + 10,
     paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     borderRadius: 999,
+    // Backgrounds run from pale sage to near-black, so the label needs to
+    // carry its own contrast rather than borrow the poster's.
+    backgroundColor: "rgba(35, 43, 33, 0.32)",
   },
   whatsNewPressed: {
-    backgroundColor: "rgba(110, 127, 104, 0.45)",
+    backgroundColor: "rgba(35, 43, 33, 0.55)",
   },
   whatsNewText: {
-    color: "rgba(247, 243, 234, 0.72)",
+    color: BRAND.cream,
     fontSize: 12,
     letterSpacing: 1.2,
   },
@@ -1002,27 +995,49 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   filterRow: {
-    flexGrow: 0,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     marginBottom: 14,
   },
-  filterRowContent: {
-    gap: 8,
-    paddingRight: 4,
-  },
+  // Fixed height with centred content: Poppins at this size was being
+  // bottom-clipped when the chip sized itself to the text.
+  //
+  // The border is ink rather than the tier colour. Half the tiers are close
+  // enough to sage that a tier-coloured outline vanished into the sheet and
+  // the chip stopped looking like a chip. The colour lives on the dot, and on
+  // the fill once selected.
   filterChip: {
+    height: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
     borderWidth: 1.5,
-    borderColor: "rgba(247, 243, 234, 0.45)",
+    borderColor: BRAND.ink,
     borderRadius: 999,
-    paddingVertical: 6,
     paddingHorizontal: 13,
   },
   filterChipOn: {
-    backgroundColor: "rgba(247, 243, 234, 0.22)",
+    backgroundColor: BRAND.cream,
   },
+  filterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    // Every tier colour is mid-tone, so a hairline of ink keeps the pale ones
+    // off the sage and the dark ones off a selected chip's fill.
+    borderWidth: 0.5,
+    borderColor: "rgba(14, 18, 13, 0.4)",
+  },
+  // Ink, not the tier colour. Several tiers are close enough to sage that
+  // their own colour was unreadable against the sheet, and ink stays legible
+  // on every tier background a selected chip can take.
   filterChipText: {
-    color: BRAND.cream,
+    color: BRAND.ink,
     fontSize: 11,
+    lineHeight: 15,
     letterSpacing: 1,
+    includeFontPadding: false,
   },
   sheetScrollContent: {
     paddingBottom: 8,
@@ -1045,11 +1060,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  // The tier colour is already on the row's left edge. Repeating it in the
+  // label made the label invisible, so this is ink.
   seenTier: {
+    color: BRAND.ink,
     fontSize: 10,
     letterSpacing: 1.6,
     textTransform: "lowercase",
-    opacity: 0.95,
+    // Secondary, but not so faint it stops being text. 0.75 read as a smudge.
+    opacity: 0.9,
   },
   // Only shown from "somewhere between rare and legendary" upward, so the
   // common tiers never announce themselves.

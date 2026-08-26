@@ -6,7 +6,7 @@ import { StyleSheet, Text } from "react-native";
 import App from "../App";
 import ErrorBoundary from "../ErrorBoundary";
 import { QUOTES, formatQuote } from "../quotes";
-import { BACKGROUNDS } from "../backgrounds";
+import { BACKGROUNDS, BRAND } from "../backgrounds";
 import { RARITY, TIERS, tierOf, weightedRandomQuote } from "../rarity";
 
 // Quotes are stored lowercase and capitalised at display time, so anything
@@ -14,6 +14,33 @@ import { RARITY, TIERS, tierOf, weightedRandomQuote } from "../rarity";
 const shown = (quote) => formatQuote(quote);
 const SHOWN_QUOTES = new Set(QUOTES.map(formatQuote));
 const isQuote = (text) => SHOWN_QUOTES.has(text);
+
+// WCAG relative luminance and contrast ratio, so "you can't see anything"
+// becomes a number a test can hold on to.
+const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+const luminance = (hex) =>
+  rgb(hex)
+    .map((channel) => {
+      const c = channel / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    })
+    .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+
+// Composites `top` onto `bottom` at `alpha`, since translucent layers are how
+// most of the sheet is built.
+const over = (top, bottom, alpha) => {
+  const [a, b] = [rgb(top), rgb(bottom)];
+  const mix = a.map((channel, i) => Math.round(channel * alpha + b[i] * (1 - alpha)));
+  return `#${mix.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+};
+
+const contrast = (foreground, background, alpha = 1) => {
+  const front = luminance(alpha === 1 ? foreground : over(foreground, background, alpha));
+  const back = luminance(background);
+  const [light, dark] = front > back ? [front, back] : [back, front];
+  return (light + 0.05) / (dark + 0.05);
+};
 
 jest.mock("expo-splash-screen", () => ({
   preventAutoHideAsync: jest.fn(() => Promise.resolve()),
@@ -735,6 +762,41 @@ describe("previously seen", () => {
       const distinct = tiersIn(tree).size;
       const hasChips = chipLabels(tree).length > 0;
       expect(hasChips).toBe(distinct > 1);
+    });
+
+    // A tester could not read the chips at all: they were drawn in their own
+    // tier colour, and several tiers sit within a hair of the sage sheet.
+    // Contrast is the actual requirement, so that is what is pinned here
+    // rather than a specific hex.
+    it("keeps the chips and tier labels readable on every background", async () => {
+      const tree = await openSeen();
+      const row = tree.root.findByProps({ testID: "seen-filters" });
+
+      const chipText = row.findAllByType(Text)[0];
+      const chipColor = StyleSheet.flatten(chipText.props.style).color;
+
+      // A chip is transparent when off and filled with its tier colour when
+      // on, so the label has to survive the sheet and all seven tiers.
+      for (const background of [BRAND.sage, ...TIERS.map((t) => t.color)]) {
+        expect(contrast(chipColor, background)).toBeGreaterThanOrEqual(4.5);
+      }
+
+      const tierLabel = tree.root
+        .findByProps({ testID: "seen-sheet" })
+        .findAllByType(Text)
+        .find((node) => {
+          const child = node.props.children;
+          return (
+            typeof child === "string" &&
+            TIERS.some((t) => t.label === child)
+          );
+        });
+      const labelStyle = StyleSheet.flatten(tierLabel.props.style);
+      // Rows are a translucent deep sage over the sheet.
+      const rowBackground = over("#6E7F68", BRAND.sage, 0.45);
+      expect(
+        contrast(labelStyle.color, rowBackground, labelStyle.opacity ?? 1)
+      ).toBeGreaterThanOrEqual(4.5);
     });
 
     it("forgets the filter when the sheet is reopened", async () => {

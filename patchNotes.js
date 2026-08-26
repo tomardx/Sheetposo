@@ -4,6 +4,27 @@
 // Keep entries short. Nobody has ever wanted longer patch notes.
 export const PATCH_NOTES = [
   {
+    version: "1.1.1",
+    date: "26 August 2026",
+    title: "The one where you could see it",
+    sections: [
+      {
+        heading: "Fixed",
+        items: [
+          "The tier filters were written in their own tier colour, on a background of very nearly that colour. They are black now, which is a colour you can see.",
+          "The filters no longer run off the side of the screen into a place nobody knew they could scroll to.",
+          "The rarity under each quote was also invisible. It has stopped being invisible.",
+        ],
+      },
+      {
+        heading: "Not fixed",
+        items: [
+          "The quotes. Those are working as intended.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.1.0",
     date: "19 August 2026",
     title: "The rarity update (like my mom says i am)",
