@@ -1,6 +1,7 @@
-// Procedural poster backgrounds, on-brand (see BRAND.md): every background is
-// a variation of the sage field, with translucent shapes drawn from the brand
-// palette. Deterministic per index, so no image assets are bundled.
+// Procedural poster backgrounds. Shape and gradient direction live here and
+// are deterministic per index, so no image assets are bundled. The colours
+// come from the quote's rarity tier (rarity.js), which is what makes a rare
+// pull look different the moment it lands.
 
 // Brand palette (BRAND.md).
 export const BRAND = {
@@ -11,20 +12,6 @@ export const BRAND = {
   sand: "#D9CDB6",
   terracotta: "#B3765C",
 };
-
-// Gradient variations of the sage field. All stay within the three sage
-// tones so every poster reads as the same calm app; variety comes from
-// direction, stop order, and the shapes.
-const GRADIENTS = [
-  [BRAND.sageLight, BRAND.sage, BRAND.sageDeep],
-  [BRAND.sage, BRAND.sageDeep],
-  [BRAND.sageLight, BRAND.sage],
-  [BRAND.sage, BRAND.sageLight, BRAND.sage],
-  [BRAND.sageDeep, BRAND.sage],
-  [BRAND.sageLight, BRAND.sageDeep],
-  [BRAND.sage, BRAND.sageDeep, BRAND.sage],
-  [BRAND.sageDeep, BRAND.sage, BRAND.sageLight],
-];
 
 const BACKGROUND_VARIANTS = 24;
 
@@ -51,7 +38,6 @@ function shapeColor(rand) {
 
 function buildBackground(index) {
   const rand = mulberry32(index * 7919 + 13);
-  const colors = GRADIENTS[index % GRADIENTS.length];
   const shapeCount = 3 + Math.floor(rand() * 4); // 3-6 shapes
   const shapes = [];
   for (let i = 0; i < shapeCount; i++) {
@@ -72,7 +58,7 @@ function buildBackground(index) {
   // Gradient direction varies per background.
   const start = { x: rand(), y: 0 };
   const end = { x: rand(), y: 1 };
-  return { colors, shapes, start, end };
+  return { shapes, start, end };
 }
 
 export const BACKGROUND_COUNT = BACKGROUND_VARIANTS;

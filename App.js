@@ -26,6 +26,7 @@ import { useFonts } from "expo-font";
 import { Poppins_500Medium } from "@expo-google-fonts/poppins/500Medium";
 import { QUOTES, formatQuote } from "./quotes";
 import { BACKGROUNDS, BRAND, randomBackgroundIndex } from "./backgrounds";
+import { tierOf, weightedRandomQuote } from "./rarity";
 import {
   configureNotificationHandling,
   rescheduleIfNeeded,
@@ -56,14 +57,10 @@ const SHARE_IMAGE_PX = 1080;
 const LOTUS_MARK = require("./assets/adaptive-icon.png");
 
 // Quotes are held as text, not as an index into QUOTES, so editing the list
-// can never make a scheduled notification open the wrong quote.
+// can never make a scheduled notification open the wrong quote. The pull is
+// weighted by rarity tier (rarity.js).
 function randomQuote(exclude) {
-  if (QUOTES.length <= 1) return QUOTES[0];
-  let next;
-  do {
-    next = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-  } while (next === exclude);
-  return next;
+  return weightedRandomQuote(QUOTES, exclude);
 }
 
 // Prefer the text the notification actually displayed; fall back to its body,
@@ -115,23 +112,112 @@ function BackgroundShapes({ shapes }) {
   ));
 }
 
+// Motion earned by rarity. Level 0 renders nothing at all, so the common
+// tiers stay completely still and a rare pull is obvious without a label.
+function RarityAura({ tier, still }) {
+  const { width, height } = useWindowDimensions();
+  const breath = useRef(new Animated.Value(0)).current;
+  const sweep = useRef(new Animated.Value(0)).current;
+  const level = tier.motion;
+
+  useEffect(() => {
+    // `still` freezes the capture layer: a share should never catch a
+    // half-faded frame.
+    if (level < 1 || still) return undefined;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breath, {
+          toValue: 1,
+          duration: level >= 3 ? 1800 : 2800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(breath, {
+          toValue: 0,
+          duration: level >= 3 ? 1800 : 2800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [breath, level, still]);
+
+  useEffect(() => {
+    if (level < 2 || still) return undefined;
+    const loop = Animated.loop(
+      Animated.timing(sweep, {
+        toValue: 1,
+        duration: level >= 3 ? 3600 : 5200,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [sweep, level, still]);
+
+  if (level < 1) return null;
+
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: tier.gradient[0],
+            opacity: breath.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, level >= 3 ? 0.34 : 0.16],
+            }),
+          },
+        ]}
+      />
+      {level >= 2 && (
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: -height * 0.2,
+            bottom: -height * 0.2,
+            width: width * 0.5,
+            backgroundColor: BRAND.cream,
+            opacity: level >= 3 ? 0.13 : 0.07,
+            transform: [
+              { rotate: "18deg" },
+              {
+                translateX: sweep.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-width, width * 1.6],
+                }),
+              },
+            ],
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
 // The poster itself: background + quote, with nothing interactive. Rendered
 // twice, once visibly and full-screen, once square as the capture source with
 // branding attached.
 function PosterFace({ background, quote, branded, chromeFont }) {
+  const tier = tierOf(quote);
   return (
     <View style={styles.face}>
       <LinearGradient
-        colors={background.colors}
+        colors={tier.gradient}
         start={background.start}
         end={background.end}
         style={StyleSheet.absoluteFill}
       />
       <BackgroundShapes shapes={background.shapes} />
+      <RarityAura tier={tier} still={branded} />
       <View style={[styles.content, branded && styles.contentBranded]}>
         <Text style={[styles.quote, { fontSize: quoteFontSize(quote) }]}>
           {formatQuote(quote)}
         </Text>
+        {tier.motion >= 2 && (
+          <Text style={[styles.rarityLabel, chromeFont]}>{tier.label}</Text>
+        )}
       </View>
       {branded && (
         <View style={styles.watermark}>
@@ -562,18 +648,25 @@ function SeenSheet({ visible, seen, chromeFont, onClose, onPick }) {
               style={styles.sheetScroll}
               contentContainerStyle={styles.sheetScrollContent}
             >
-              {ordered.map((entry, i) => (
-                <Pressable
-                  key={`${i}-${entry}`}
-                  onPress={() => onPick(entry)}
-                  style={({ pressed }) => [
-                    styles.seenRow,
-                    pressed && styles.seenRowPressed,
-                  ]}
-                >
-                  <Text style={styles.seenText}>{formatQuote(entry)}</Text>
-                </Pressable>
-              ))}
+              {ordered.map((entry, i) => {
+                const tier = tierOf(entry);
+                return (
+                  <Pressable
+                    key={`${i}-${entry}`}
+                    onPress={() => onPick(entry)}
+                    style={({ pressed }) => [
+                      styles.seenRow,
+                      { borderLeftColor: tier.color },
+                      pressed && styles.seenRowPressed,
+                    ]}
+                  >
+                    <Text style={styles.seenText}>{formatQuote(entry)}</Text>
+                    <Text style={[styles.seenTier, { color: tier.color }]}>
+                      {tier.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           )}
 
@@ -842,8 +935,11 @@ const styles = StyleSheet.create({
   seenRow: {
     backgroundColor: "rgba(110, 127, 104, 0.45)",
     borderRadius: 14,
+    // The tier colour rides on this edge, set per row.
+    borderLeftWidth: 4,
     paddingVertical: 13,
     paddingHorizontal: 16,
+    gap: 5,
   },
   seenRowPressed: {
     backgroundColor: BRAND.sageDeep,
@@ -852,6 +948,22 @@ const styles = StyleSheet.create({
     color: BRAND.cream,
     fontSize: 14,
     lineHeight: 20,
+  },
+  seenTier: {
+    fontSize: 10,
+    letterSpacing: 1.6,
+    textTransform: "lowercase",
+    opacity: 0.95,
+  },
+  // Only shown from "somewhere between rare and legendary" upward, so the
+  // common tiers never announce themselves.
+  rarityLabel: {
+    marginTop: 22,
+    color: "rgba(247, 243, 234, 0.75)",
+    fontSize: 11,
+    letterSpacing: 3,
+    textAlign: "center",
+    textTransform: "lowercase",
   },
   sheetClose: {
     alignSelf: "center",

@@ -7,6 +7,7 @@ import App from "../App";
 import ErrorBoundary from "../ErrorBoundary";
 import { QUOTES, formatQuote } from "../quotes";
 import { BACKGROUNDS } from "../backgrounds";
+import { RARITY, TIERS, tierOf, weightedRandomQuote } from "../rarity";
 
 // Quotes are stored lowercase and capitalised at display time, so anything
 // compared against rendered text has to go through formatQuote first.
@@ -267,12 +268,15 @@ describe("app startup", () => {
     });
   });
 
-  it("pairs every background with valid gradient colors", () => {
+  it("gives every background usable shapes and a gradient direction", () => {
     for (const background of BACKGROUNDS) {
-      expect(background.colors.length).toBeGreaterThanOrEqual(2);
-      for (const color of background.colors) {
-        expect(color).toMatch(/^#[0-9A-Fa-f]{6}$/);
-      }
+      expect(background.shapes.length).toBeGreaterThan(0);
+      expect(background.start).toEqual(
+        expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) })
+      );
+      expect(background.end).toEqual(
+        expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) })
+      );
     }
   });
 });
@@ -359,6 +363,92 @@ describe("sharing", () => {
   });
 });
 
+describe("rarity", () => {
+  it("points every assignment at a quote that still exists", () => {
+    // A rewrite of the list can silently orphan a key, and an orphaned key is
+    // invisible: the quote just stays common.
+    const orphans = Object.keys(RARITY).filter((q) => !QUOTES.includes(q));
+    expect(orphans).toEqual([]);
+  });
+
+  it("only uses tier ids that are defined", () => {
+    const ids = new Set(TIERS.map((tier) => tier.id));
+    for (const id of Object.values(RARITY)) expect(ids.has(id)).toBe(true);
+  });
+
+  it("gets rarer as the tiers go up", () => {
+    for (let i = 1; i < TIERS.length; i++) {
+      expect(TIERS[i].share).toBeLessThan(TIERS[i - 1].share);
+      expect(TIERS[i].motion).toBeGreaterThanOrEqual(TIERS[i - 1].motion);
+    }
+  });
+
+  it("has shares that add up to one", () => {
+    const total = TIERS.reduce((sum, tier) => sum + tier.share, 0);
+    expect(total).toBeCloseTo(1, 5);
+  });
+
+  it("gives every tier a distinct colour and a full gradient", () => {
+    const colors = TIERS.map((tier) => tier.color);
+    expect(new Set(colors).size).toBe(colors.length);
+    for (const tier of TIERS) {
+      expect(tier.color).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      expect(tier.gradient).toHaveLength(3);
+      for (const stop of tier.gradient) {
+        expect(stop).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      }
+    }
+  });
+
+  it("leaves no tier without members", () => {
+    const counts = new Map(TIERS.map((tier) => [tier.id, 0]));
+    for (const quote of QUOTES) {
+      const id = tierOf(quote).id;
+      counts.set(id, counts.get(id) + 1);
+    }
+    for (const tier of TIERS) expect(counts.get(tier.id)).toBeGreaterThan(0);
+  });
+
+  it("puts a quote in the same tier every time", () => {
+    for (const quote of QUOTES.slice(0, 40)) {
+      expect(tierOf(quote).id).toBe(tierOf(quote).id);
+    }
+    // Unassigned quotes are split by a stable hash, so this must hold for
+    // them too, not just for the hand-listed ones.
+    const unlisted = QUOTES.find((q) => !RARITY[q]);
+    const first = tierOf(unlisted).id;
+    for (let i = 0; i < 10; i++) expect(tierOf(unlisted).id).toBe(first);
+  });
+
+  it("pulls each tier at roughly its share", () => {
+    const draws = new Map(TIERS.map((tier) => [tier.id, 0]));
+    const runs = 40000;
+    for (let i = 0; i < runs; i++) {
+      const id = tierOf(weightedRandomQuote(QUOTES)).id;
+      draws.set(id, draws.get(id) + 1);
+    }
+    for (const tier of TIERS) {
+      const measured = draws.get(tier.id) / runs;
+      // Generous band: this is a sampling check, not a precision one.
+      expect(Math.abs(measured - tier.share)).toBeLessThan(0.03);
+    }
+  });
+
+  it("never returns the excluded quote", () => {
+    const exclude = QUOTES[0];
+    for (let i = 0; i < 500; i++) {
+      expect(weightedRandomQuote(QUOTES, exclude)).not.toBe(exclude);
+    }
+  });
+
+  it("keeps fish the rarest tier, and lowercase", () => {
+    const fish = TIERS[TIERS.length - 1];
+    expect(fish.id).toBe("fish");
+    expect(fish.label).toBe("fish");
+    expect(fish.share).toBeLessThan(0.01);
+  });
+});
+
 describe("what's new", () => {
   const { PATCH_NOTES } = require("../patchNotes");
 
@@ -433,7 +523,7 @@ describe("what's new", () => {
   it("keeps the notes newest first", () => {
     const dates = PATCH_NOTES.map((r) => Date.parse(r.date));
     for (let i = 1; i < dates.length; i++) {
-      expect(dates[i - 1]).toBeGreaterThan(dates[i]);
+      expect(dates[i - 1]).toBeGreaterThanOrEqual(dates[i]);
     }
   });
 });

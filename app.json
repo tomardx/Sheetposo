@@ -30,7 +30,7 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/bleep.wav"]
+          "sounds": ["./assets/bleep.wav", "./assets/legendary.wav"]
         }
       ],
       [

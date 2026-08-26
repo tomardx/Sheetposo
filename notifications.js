@@ -3,15 +3,20 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { QUOTES, QUOTES_VERSION, formatQuote } from "./quotes";
 import { setPendingDeliveries, syncDeliveredIntoSeen } from "./seenQuotes";
+import { isLoudTier, tierOf, weightedRandomQuote } from "./rarity";
 
 const LAST_SCHEDULED_KEY = "sheetposo:lastScheduledDay";
 
 // Android locks a channel's sound and importance at creation time and ignores
 // later edits, so changing either needs a new channel id. Bump this suffix
 // whenever the channel config below changes.
-const CHANNEL_ID = "sheetposo-quotes-v2";
-const RETIRED_CHANNEL_IDS = ["sheetposo-quotes"];
+// Two channels, because a channel's sound is frozen at creation: the rarest
+// two tiers need their own, and there is no way to swap the sound on one.
+const CHANNEL_ID = "sheetposo-quotes-v3";
+const RARE_CHANNEL_ID = "sheetposo-rare-v1";
+const RETIRED_CHANNEL_IDS = ["sheetposo-quotes", "sheetposo-quotes-v2"];
 const SOUND_FILE = "bleep.wav";
+const RARE_SOUND_FILE = "legendary.wav";
 
 // Notifications fire between 8:00 and 23:00.
 const WINDOW_START_HOUR = 8;
@@ -47,6 +52,13 @@ async function ensureAndroidChannel() {
     importance: Notifications.AndroidImportance.HIGH,
     sound: SOUND_FILE,
     vibrationPattern: [0, 120, 60, 120],
+    enableVibrate: true,
+  });
+  await Notifications.setNotificationChannelAsync(RARE_CHANNEL_ID, {
+    name: "Daily Reflection (rare)",
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: RARE_SOUND_FILE,
+    vibrationPattern: [0, 90, 60, 90, 60, 160],
     enableVibrate: true,
   });
 }
@@ -110,28 +122,35 @@ export function randomTimesForDay(dayOffset) {
 // Returns what was booked, so the caller can log it and later count the quote
 // as seen once its time passes.
 async function scheduleQuoteAt(date) {
-  const quoteIndex = Math.floor(Math.random() * QUOTES.length);
+  const quote = weightedRandomQuote(QUOTES);
+  const quoteIndex = QUOTES.indexOf(quote);
+  const tier = tierOf(quote);
+  const loud = isLoudTier(quote);
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "Daily Reflection",
-      body: formatQuote(QUOTES[quoteIndex]),
+      body: formatQuote(quote),
+      // Tints the notification on Android, so a rare pull is visible in the
+      // tray before it is opened.
+      color: tier.color,
       // Carry the text itself, not just the index: editing the quote list
       // shifts indexes, and already-scheduled notifications would otherwise
       // open the app on the wrong quote.
       data: {
-        quoteText: QUOTES[quoteIndex],
+        quoteText: quote,
         quoteIndex,
+        tier: tier.id,
         version: QUOTES_VERSION,
       },
-      sound: SOUND_FILE,
+      sound: loud ? RARE_SOUND_FILE : SOUND_FILE,
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date,
-      channelId: CHANNEL_ID,
+      channelId: loud ? RARE_CHANNEL_ID : CHANNEL_ID,
     },
   });
-  return { text: QUOTES[quoteIndex], at: date.getTime() };
+  return { text: quote, at: date.getTime() };
 }
 
 // Re-rolls the whole schedule once per calendar day: cancels everything

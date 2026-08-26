@@ -4,6 +4,36 @@
 // Keep entries short. Nobody has ever wanted longer patch notes.
 export const PATCH_NOTES = [
   {
+    version: "1.1.0",
+    date: "19 August 2026",
+    title: "The rarity update (like my mom says i am)",
+    sections: [
+      {
+        heading: "Added",
+        items: [
+          "Quotes now have a rarity. Seven of them, from “Super ultra mega common” down to “fish”.",
+          "Every rarity has its own colour. The screen, the notification, and your Seen list all wear it.",
+          "The rarer the quote, the more the screen moves. The common ones sit perfectly still, as they deserve.",
+          "A new sound for the two rarest tiers. It is short, it is triumphant, and it is not the bleep.",
+        ],
+      },
+      {
+        heading: "About that sound",
+        items: [
+          "You will hear it roughly once a fortnight. Unless you muted us, in which case you will hear nothing, ever, and you will not know what you missed.",
+          "The people who left notifications on are hearing it right now. Just so you know.",
+          "We are not saying turn the sound back on. We are saying “fish” exists and you have never met it.",
+        ],
+      },
+      {
+        heading: "Fixed",
+        items: [
+          "Nothing. Everything was already fine. Stop asking.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.0.3",
     date: "19 August 2026",
     title: "The apostrophe update",

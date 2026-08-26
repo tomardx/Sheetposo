@@ -33,6 +33,23 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-19: The rarity update
+
+- `rarity.js`: new file. Seven tiers from "Super ultra mega common" down to
+  "fish", each with a colour, gradient, motion level, and a share of the pull.
+  Pulls pick a tier by share then a quote inside it: per-quote weights were
+  swamped by the 670-odd common lines and put `fish` at 0.01%, once every four
+  years. Unlisted quotes split between the two common tiers by a stable hash,
+  so neither needs curating.
+- `App.js`: poster takes its gradient from the tier, `RarityAura` adds motion
+  that scales with it (frozen on the capture layer so shares cannot catch a
+  half-faded frame), and the Seen list shows each entry's tier and colour.
+- `notifications.js`: a second channel for the two rarest tiers, since a
+  channel's sound is frozen at creation, plus `content.color` to tint the tray.
+- `assets/legendary.wav` and `tools/make_legendary.py`: a 385ms arpeggio for
+  those tiers.
+- `patchNotes.js`: 1.1.0, "The rarity update (like my mom says i am)".
+
 ### 2026-08-19: Remove every em dash
 
 - Added rule 2 to this file: no em dashes or en dashes anywhere.
@@ -55,16 +72,3 @@ message and push to `origin`.
   and exclusion from shares. Also rescoped the icon-glyph test to the buttons
   themselves, it scanned the whole tree and would trip over any unrelated
   copy containing "Share".
-
-### 2026-08-19: Punctuation pass, 454 new quotes, rarity proposal
-
-- `quotes.js`: punctuated all 312 existing quotes (contractions, terminal
-  marks, capital `I`, proper nouns) after readers complained about the sloppy
-  casing; added 454 new witty/cynical/demotivational lines, 766 total.
-  Rewrote the header house rules to cover punctuation and voice, and bumped
-  `QUOTES_VERSION` to 5 so scheduled notifications carrying the old
-  unpunctuated text get re-rolled.
-- `quotes.js`: `formatQuote()` now capitalises after each sentence break, not
-  just the opening letter, so multi-sentence quotes render correctly.
-- `RARITY.md`: new proposal for legendary/mythic/rare tiers with candidate
-  assignments and open questions. Nothing implemented.
