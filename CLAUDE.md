@@ -33,6 +33,14 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-19: Bring RARITY.md up to date
+
+- `RARITY.md`: rewritten. It still opened with "proposal, not built" and
+  described tier names, colours, and a weighting scheme that were all replaced
+  before shipping, so it actively misdescribed the app. Now documents the
+  shipped tiers, how a pull works, where rarity shows up, and how to promote a
+  quote.
+
 ### 2026-08-19: Seen filters by tier
 
 - `App.js`: the Seen sheet gains a chip row filtering by rarity. Only tiers
@@ -61,14 +69,3 @@ message and push to `origin`.
 - `assets/legendary.wav` and `tools/make_legendary.py`: a 385ms arpeggio for
   those tiers.
 - `patchNotes.js`: 1.1.0, "The rarity update (like my mom says i am)".
-
-### 2026-08-19: Remove every em dash
-
-- Added rule 2 to this file: no em dashes or en dashes anywhere.
-- Swept all 13 files containing `—` (84 instances), replacing each with a
-  comma, a colon in headings and label/value pairs, or a full stop. No em
-  dashes existed inside any quote string; they were all in comments, docs,
-  store copy, and the patch-note version separator.
-- `README.md`: fixed while in there. It still described the removed Copy
-  button, the emoji on Shuffle, "~500 quotes", and a 3-day schedule. Now
-  documents the current app, and the quote-authoring rules live in one place.
