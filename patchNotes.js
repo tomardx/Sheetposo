@@ -22,7 +22,15 @@ export const PATCH_NOTES = [
           "Somebody read all 766 quotes in one sitting. In an afternoon. On purpose. Imagine.",
           "Not most of them. All of them. There is no rare one still out there for him, nothing left to find. He got the last one too.",
           "He has seen everything this app will ever say to him, and he was done before dinner.",
+          "His number has since gone down. Some of what he collected was deleted two updates ago and should never have counted. He will have to do it again.",
           "The rest of you get two a day now. Thank him.",
+        ],
+      },
+      {
+        heading: "Fixed",
+        items: [
+          "Seen could climb past the total, which is how somebody reached 767 of 766. Quotes removed in an earlier update were still being counted, and a quote could be held twice under two spellings.",
+          "If your number went down, that is the fix. You did not lose anything you still had.",
         ],
       },
     ],

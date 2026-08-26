@@ -43,6 +43,7 @@ import {
   presentedQuotes,
   saveSeenQuotes,
   syncDeliveredIntoSeen,
+  canonicalise,
 } from "./seenQuotes";
 
 // Both are synchronous, JS-only registrations: safe at module scope.
@@ -301,7 +302,11 @@ function Poster() {
   const absorb = useCallback((entries) => {
     if (!entries?.length) return;
     setSeen((prev) => {
-      const missing = entries.filter((entry) => entry && !prev.includes(entry));
+      // Resolved here as well as in storage: tray entries arrive in display
+      // form, and a quote that has since been removed from the app must not
+      // count toward a total it is no longer part of.
+      const incoming = canonicalise(entries);
+      const missing = incoming.filter((entry) => !prev.includes(entry));
       return missing.length ? [...prev, ...missing] : prev;
     });
   }, []);

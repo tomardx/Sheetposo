@@ -99,6 +99,9 @@ jest.mock("./../seenQuotes", () => ({
   presentedQuotes: jest.fn(() => Promise.resolve([])),
   setPendingDeliveries: jest.fn(() => Promise.resolve()),
   syncDeliveredIntoSeen: jest.fn(() => Promise.resolve([])),
+  // Not stubbed. The real one decides what counts toward the total, and a
+  // pass-through here would hide a regression in exactly that.
+  canonicalise: jest.requireActual("./../seenQuotes").canonicalise,
 }));
 
 jest.mock("react-native-view-shot", () => ({

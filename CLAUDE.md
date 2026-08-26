@@ -33,6 +33,26 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-08-26: Stop the Seen count going past the total
+
+- `seenQuotes.js`: history is keyed by text, which survives a reordered list
+  but not a deleted or rewritten quote. Entries matching nothing were still
+  counted and still shown, so a tester reached "767 of 766" and could keep
+  reading quotes removed with the legacy pack. Entries now resolve against the
+  live list through a `canonicalise` helper, and an old history is pruned once
+  on read rather than re-filtered forever.
+- Same helper folds the display form onto the raw text. Notifications carry raw
+  text, but the tray fallback reads the capitalised body, so one quote could
+  sit in history twice under two spellings.
+- `App.js`: `absorb` resolves too, since tray entries reach state without
+  passing through storage first.
+- `__tests__/seenQuotes.test.js`: 6 new tests, including "can never exceed the
+  size of the quote list". The old tests used invented strings like "a
+  delivered quote" and now use real ones. Sabotage-checked: keeping orphans
+  fails four.
+- `patchNotes.js`: 1.1.2 gains a Fixed section, because collections will shrink
+  and people will notice.
+
 ### 2026-08-26: Ration the Shuffle button
 
 - `shuffleBudget.js` (new): two shuffles per rolling 24 hours. The window opens
@@ -70,9 +90,3 @@ They just repeat.
   appVersion runtime policy and a channel per build profile, so the next
   JS-only fix ships without a store release. Version bumped to 1.1.1.
 - `patchNotes.js`: 1.1.1 entry.
-
-### 2026-08-19: Bump the app version to 1.1.0
-
-- `app.json`: version was still 1.0.0 while the in-app patch notes announced
-  1.1.0, so Google Play would have shown testers the wrong number. versionCode
-  is untouched, EAS manages it remotely.
