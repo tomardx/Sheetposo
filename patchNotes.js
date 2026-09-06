@@ -1,6 +1,10 @@
 // In-app patch notes, newest first. Written in the app's voice: the wrapper
 // stays sincere, the content does not (BRAND.md).
 //
+// `date` is the day the version reaches people, not the day the work was
+// written. Those drifted apart once and every entry had to be re-derived from
+// the commit log.
+//
 // Keep entries short. Nobody has ever wanted longer patch notes.
 export const PATCH_NOTES = [
   {
@@ -37,7 +41,7 @@ export const PATCH_NOTES = [
   },
   {
     version: "1.1.1",
-    date: "26 August 2026",
+    date: "27 August 2026",
     title: "The one where you could see it",
     sections: [
       {
@@ -60,7 +64,7 @@ export const PATCH_NOTES = [
   },
   {
     version: "1.1.0",
-    date: "19 August 2026",
+    date: "26 August 2026",
     title: "The rarity update (like my mom says i am)",
     sections: [
       {
@@ -79,6 +83,12 @@ export const PATCH_NOTES = [
           "You will hear it roughly once a fortnight. Unless you muted us, in which case you will hear nothing, ever, and you will not know what you missed.",
           "The people who left notifications on are hearing it right now. Just so you know.",
           "We are not saying turn the sound back on. We are saying “fish” exists and you have never met it.",
+        ],
+      },
+      {
+        heading: "Added",
+        items: [
+          "This screen. You are reading the new feature. There is no way to make that sentence less circular.",
         ],
       },
       {
@@ -112,7 +122,7 @@ export const PATCH_NOTES = [
   },
   {
     version: "1.0.2",
-    date: "9 August 2026",
+    date: "10 August 2026",
     title: "The one where notifications worked",
     sections: [
       {

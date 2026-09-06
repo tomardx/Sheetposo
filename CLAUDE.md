@@ -48,6 +48,22 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-09-06: Re-derive every patch note date, and announce the notes
+
+- `patchNotes.js`: the dates were the days work was written, not the days it
+  shipped, and two entries shared 19 August. Each is now pinned to the last
+  commit its release actually contains: 1.0.2 to 10 August, 1.1.0 to 26 August
+  (it was on 19 August, which belongs to 1.0.3), 1.1.1 to 27 August, 1.1.2 to
+  6 September. 1.0.3 and 1.0.0 were already right.
+- 1.1.1's date is the one inference here. Its work and 1.1.0's landed on the
+  same day, so the gap between them is assumed rather than known. Correct it
+  from the Play Console Releases tab if it matters.
+- Same audit found 1.1.0 shipped the "What's new?" sheet without announcing it,
+  so that entry gains an Added section. The patch notes now announce
+  themselves, which is the only honest way to write that line.
+- Header comment records that `date` means release day, so this does not drift
+  again.
+
 ### 2026-09-06: Correct the 1.1.2 patch note date
 
 - `patchNotes.js`: 1.1.2 was dated 26 August, the day the work was written, not
@@ -66,17 +82,3 @@ message and push to `origin`.
 - `patchNotes.js`: two fixes shipped in 1.1.1 were never written up. The filter
   labels were being vertically clipped, and the "What's new?" control was almost
   unreadable on darker posters. Both now have lines under 1.1.1.
-
-### 2026-08-26: Back to a real Play release for 1.1.2
-
-- Reverted the OTA prep. Google Play's review counts releases uploaded to the
-  track, and an expo-updates OTA never touches Play, so shipping the rationing
-  and the Seen fix over the air would have left the closed test showing no
-  updates at all during the testing window. The rejection names "acting on user
-  feedback through updates to your app" as a criterion, so those updates have
-  to be visible to Google.
-- `app.json` back to 1.1.2, and the two 1.1.1 patch note entries separated
-  again.
-- expo-updates stays installed. It is still the right tool for a fix that has
-  to reach people in minutes, just not while production access is being
-  reviewed.
