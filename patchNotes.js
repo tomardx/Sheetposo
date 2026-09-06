@@ -46,6 +46,8 @@ export const PATCH_NOTES = [
           "The tier filters were written in their own tier colour, on a background of very nearly that colour. They are black now, which is a colour you can see.",
           "The filters no longer run off the side of the screen into a place nobody knew they could scroll to.",
           "The rarity under each quote was also invisible. It has stopped being invisible.",
+          "The filter labels were getting their bottoms cut off. They now have bottoms.",
+          "The \u201cWhat\u2019s new?\u201d button was nearly invisible on the darker posters, which is a bold choice for a button whose entire job is being noticed. It brings its own background now.",
         ],
       },
       {

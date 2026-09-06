@@ -22,7 +22,22 @@ and a second sentence.
 En dashes (`–`) are out too. A plain hyphen in a compound word (`AI-powered`)
 is fine.
 
-### 3. Commit and push when the work is done
+### 3. Every change goes in the in-app patch notes
+
+Anything a user could notice goes in `patchNotes.js`, in the voice the existing
+entries use. Bug fix, tweak, one-word copy change, it does not matter how small.
+If it changed on their screen, it gets a line.
+
+- Add it to the entry for the version it ships in, creating that entry if it
+  does not exist yet, and bump `version` in `app.json` to match.
+- Match the existing tone. Sections are headed Added, Changed, Fixed, Removed,
+  or a joke in the same shape.
+- Invisible plumbing (a dependency, a test, a build setting) stays out. It
+  belongs in the changelog below, not in front of users.
+- Before any release build, check the notes against the commits since the last
+  release. Two fixes were missed this way once already.
+
+### 4. Commit and push when the work is done
 
 Once an edit or task is finalized, not after every individual file edit, but
 when the work is finished and verified, commit the changes with a descriptive
@@ -32,6 +47,16 @@ message and push to `origin`.
 - Push immediately after committing.
 
 ## Changelog
+
+### 2026-08-26: Make the patch notes a rule, and fill two gaps
+
+- `CLAUDE.md`: new rule 3. Anything a user could notice goes in `patchNotes.js`,
+  in the existing voice, however small. Invisible plumbing stays out and belongs
+  in this changelog instead. Check the notes against the commits before every
+  release build.
+- `patchNotes.js`: two fixes shipped in 1.1.1 were never written up. The filter
+  labels were being vertically clipped, and the "What's new?" control was almost
+  unreadable on darker posters. Both now have lines under 1.1.1.
 
 ### 2026-08-26: Back to a real Play release for 1.1.2
 
@@ -66,22 +91,3 @@ message and push to `origin`.
   fails four.
 - `patchNotes.js`: 1.1.2 gains a Fixed section, because collections will shrink
   and people will notice.
-
-### 2026-08-26: Ration the Shuffle button
-
-- `shuffleBudget.js` (new): two shuffles per rolling 24 hours. The window opens
-  at the first shuffle rather than at midnight, so shuffling at 23:55 does not
-  buy a fresh pair five minutes later. Stored in AsyncStorage, fails open on a
-  read error, and clamps a tampered count.
-- `App.js`: Shuffle spends from the budget, dims when spent, and stays
-  pressable so the toast can say when it returns. A line under the button shows
-  what is left.
-- `__tests__/startup.test.js`: 12 tests. The AsyncStorage mock is now a real
-  in-memory store, because the old stub returned null for every read and would
-  have let an exhausted budget silently refill. Sabotage-checked: removing the
-  limit fails three of them.
-- Version 1.1.2, with a patch note needling the tester who did it.
-
-Worth knowing: notifications draw from the whole quote list and have never
-excluded seen quotes, so reaching the end of the collection does not stop them.
-They just repeat.
