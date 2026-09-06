@@ -4,10 +4,7 @@
 // Keep entries short. Nobody has ever wanted longer patch notes.
 export const PATCH_NOTES = [
   {
-    // Shipped in two goes: the readability fixes came with the build, the
-    // rationing and the Seen fix went out over the air on the same version.
-    // Same version number, so one entry rather than two.
-    version: "1.1.1",
+    version: "1.1.2",
     date: "26 August 2026",
     title: "The rationing update",
     sections: [
@@ -34,6 +31,18 @@ export const PATCH_NOTES = [
         items: [
           "Seen could climb past the total, which is how somebody reached 767 of 766. Quotes removed in an earlier update were still being counted, and a quote could be held twice under two spellings.",
           "If your number went down, that is the fix. You did not lose anything you still had.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "1.1.1",
+    date: "26 August 2026",
+    title: "The one where you could see it",
+    sections: [
+      {
+        heading: "Fixed",
+        items: [
           "The tier filters were written in their own tier colour, on a background of very nearly that colour. They are black now, which is a colour you can see.",
           "The filters no longer run off the side of the screen into a place nobody knew they could scroll to.",
           "The rarity under each quote was also invisible. It has stopped being invisible.",
@@ -43,6 +52,37 @@ export const PATCH_NOTES = [
         heading: "Not fixed",
         items: [
           "The quotes. Those are working as intended.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "1.1.0",
+    date: "19 August 2026",
+    title: "The rarity update (like my mom says i am)",
+    sections: [
+      {
+        heading: "Seven deadly tiers",
+        items: [
+          "Quotes now have a rarity. Seven of them, from “Super ultra mega common” down to “fish”.",
+          "Every rarity has its own colour. The screen, the notification, and your Seen list all wear it.",
+          "The rarer the quote, the more the screen moves. The common ones sit perfectly still, as they deserve.",
+          "A new sound for the two rarest tiers. It is short, it is triumphant, and it is not the bleep.",
+          "Seen now filters by tier, but only by the ones you have actually pulled. We are not telling you what is left.",
+        ],
+      },
+      {
+        heading: "About that sound",
+        items: [
+          "You will hear it roughly once a fortnight. Unless you muted us, in which case you will hear nothing, ever, and you will not know what you missed.",
+          "The people who left notifications on are hearing it right now. Just so you know.",
+          "We are not saying turn the sound back on. We are saying “fish” exists and you have never met it.",
+        ],
+      },
+      {
+        heading: "Fixed",
+        items: [
+          "Nothing. Everything was already fine. Stop asking.",
         ],
       },
     ],

@@ -33,20 +33,19 @@ message and push to `origin`.
 
 ## Changelog
 
-### 2026-08-26: Ship the rationing and the Seen fix over the air
+### 2026-08-26: Back to a real Play release for 1.1.2
 
-- `app.json`: version back to 1.1.1. The runtime policy is `appVersion`, so an
-  update published as 1.1.2 would only reach 1.1.2 binaries, and none exist.
-  Testers are on the 1.1.1 build, which is the first one carrying
-  expo-updates.
-- `patchNotes.js`: the two 1.1.1 entries merged into one. The readability
-  fixes went out with the build and the rationing and Seen fix go out over the
-  air on the same version, so two entries sharing a version number would have
-  read as a bug.
-- Verified OTA-safe: nothing since the 1.1.1 build touches native code or
-  dependencies. shuffleBudget.js uses AsyncStorage, which that binary already
-  has.
-- Publish with `eas update --branch production`.
+- Reverted the OTA prep. Google Play's review counts releases uploaded to the
+  track, and an expo-updates OTA never touches Play, so shipping the rationing
+  and the Seen fix over the air would have left the closed test showing no
+  updates at all during the testing window. The rejection names "acting on user
+  feedback through updates to your app" as a criterion, so those updates have
+  to be visible to Google.
+- `app.json` back to 1.1.2, and the two 1.1.1 patch note entries separated
+  again.
+- expo-updates stays installed. It is still the right tool for a fix that has
+  to reach people in minutes, just not while production access is being
+  reviewed.
 
 ### 2026-08-26: Stop the Seen count going past the total
 
