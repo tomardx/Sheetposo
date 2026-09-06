@@ -48,6 +48,26 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-09-06: Reopen on the last poster instead of re-rolling
+
+- `lastPoster.js` (new): stores the quote and background on every change and
+  restores them on launch. The quote is kept as text and resolved against the
+  live list on read, like the seen history, so a quote deleted in a later
+  release cannot strand anyone. An out-of-range background index is treated as
+  absent rather than rendering nothing.
+- `App.js`: poster state was seeded from `randomQuote()` on every mount and
+  never persisted, so a cold start silently re-rolled. One effect now persists
+  whatever is on screen, covering shuffle, a notification tap and a pick from
+  the seen list without touching each path. The splash waits for the stored
+  poster so there is no flash of a random quote, with the existing 5s timeout
+  as the escape hatch, and a notification tap still outranks the stored poster.
+- `__tests__/startup.test.js`: 9 tests covering cold start, repeated launches,
+  each path that sets a quote, the notification race, a deleted quote, an
+  out-of-range background, and unreadable storage. Sabotage-checked both ways:
+  dropping the save fails five, letting the restore beat the notification
+  fails one. The seenQuotes mock also needed `canonicalQuote`.
+- `patchNotes.js`: line under 1.1.2.
+
 ### 2026-09-06: Re-derive every patch note date, and announce the notes
 
 - `patchNotes.js`: the dates were the days work was written, not the days it
@@ -72,13 +92,3 @@ message and push to `origin`.
 - Still unverified: 1.1.0 is dated 19 August but the rarity work landed on the
   26th, so one of the two is wrong. Left alone pending the real Play release
   date.
-
-### 2026-08-26: Make the patch notes a rule, and fill two gaps
-
-- `CLAUDE.md`: new rule 3. Anything a user could notice goes in `patchNotes.js`,
-  in the existing voice, however small. Invisible plumbing stays out and belongs
-  in this changelog instead. Check the notes against the commits before every
-  release build.
-- `patchNotes.js`: two fixes shipped in 1.1.1 were never written up. The filter
-  labels were being vertically clipped, and the "What's new?" control was almost
-  unreadable on darker posters. Both now have lines under 1.1.1.

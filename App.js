@@ -26,6 +26,7 @@ import { useFonts } from "expo-font";
 import { Poppins_500Medium } from "@expo-google-fonts/poppins/500Medium";
 import { QUOTES, formatQuote } from "./quotes";
 import { BACKGROUNDS, BRAND, randomBackgroundIndex } from "./backgrounds";
+import { loadLastPoster, saveLastPoster } from "./lastPoster";
 import {
   SHUFFLE_LIMIT,
   loadShuffleBudget,
@@ -251,7 +252,11 @@ function Poster() {
   // fall back to the system face rather than blocking startup.
   const [fontsLoaded, fontError] = useFonts({ Poppins_500Medium });
   const [splashTimedOut, setSplashTimedOut] = useState(false);
-  const startupDone = fontsLoaded || !!fontError || splashTimedOut;
+  // The stored poster arrives asynchronously. Holding the splash for it avoids
+  // showing a random quote for a frame and then swapping it.
+  const [posterLoaded, setPosterLoaded] = useState(false);
+  const startupDone =
+    ((fontsLoaded || !!fontError) && posterLoaded) || splashTimedOut;
   // Only claim the family once it is actually registered.
   const chromeFont = fontsLoaded ? { fontFamily: "Poppins_500Medium" } : null;
   const handledResponseRef = useRef(null);
@@ -283,6 +288,28 @@ function Poster() {
   useEffect(() => {
     const timer = setTimeout(() => setSplashTimedOut(true), SPLASH_TIMEOUT_MS);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Reopen on the poster the app was last showing.
+  useEffect(() => {
+    let cancelled = false;
+    loadLastPoster()
+      .then((stored) => {
+        if (cancelled) return;
+        // Launching from a notification means that quote has already been set,
+        // and it outranks whatever was on screen last time.
+        if (stored && !handledResponseRef.current) {
+          setQuote(stored.quote);
+          if (stored.bgIndex !== null) setBgIndex(stored.bgIndex);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setPosterLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
@@ -408,6 +435,14 @@ function Poster() {
       setBgIndex((prev) => randomBackgroundIndex(prev));
     }
   }, [lastResponse]);
+
+  // Persists whatever is on screen, whichever path put it there. Held back
+  // until the stored poster has loaded so the restore is not overwritten by
+  // the random quote it is about to replace.
+  useEffect(() => {
+    if (!posterLoaded) return;
+    saveLastPoster(quote, bgIndex);
+  }, [quote, bgIndex, posterLoaded]);
 
   const showToast = useCallback(
     (message) => {

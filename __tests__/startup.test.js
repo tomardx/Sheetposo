@@ -99,9 +99,11 @@ jest.mock("./../seenQuotes", () => ({
   presentedQuotes: jest.fn(() => Promise.resolve([])),
   setPendingDeliveries: jest.fn(() => Promise.resolve()),
   syncDeliveredIntoSeen: jest.fn(() => Promise.resolve([])),
-  // Not stubbed. The real one decides what counts toward the total, and a
-  // pass-through here would hide a regression in exactly that.
+  // Not stubbed. These decide what counts toward the total and which stored
+  // poster is still valid, and a pass-through here would hide a regression in
+  // exactly that.
   canonicalise: jest.requireActual("./../seenQuotes").canonicalise,
+  canonicalQuote: jest.requireActual("./../seenQuotes").canonicalQuote,
 }));
 
 jest.mock("react-native-view-shot", () => ({
@@ -976,6 +978,141 @@ describe("rationed shuffles", () => {
       expect(timeUntil(now + 6 * HOUR + 30 * MINUTE, now)).toBe("6h 30m");
       expect(timeUntil(now - 1, now)).toBe("now");
     });
+  });
+});
+
+// Closing the app entirely and reopening it used to roll a new quote, because
+// the poster state was seeded from randomQuote() on every mount and never
+// stored. That spent the day's reading for free and made the shuffle limit
+// look arbitrary, since the app could re-roll but the user could not.
+describe("reopening the app", () => {
+  function press(tree, testID) {
+    return act(async () => {
+      tree.root.findByProps({ testID }).props.onPress();
+    });
+  }
+
+  const posterQuote = (tree) => visibleText(tree).find((t) => isQuote(t));
+
+  // A cold start: the process is gone, so nothing survives except storage.
+  async function relaunch(tree) {
+    await act(async () => {
+      tree.unmount();
+    });
+    trees = trees.filter((t) => t !== tree);
+    return renderApp();
+  }
+
+  it("comes back on the same quote", async () => {
+    const first = await renderApp();
+    const shownFirst = posterQuote(first);
+
+    const second = await relaunch(first);
+    expect(posterQuote(second)).toBe(shownFirst);
+  });
+
+  it("comes back on the same background", async () => {
+    const first = await renderApp();
+    const stored = JSON.parse(
+      await AsyncStorage.getItem("sheetposo:lastPoster")
+    );
+    const second = await relaunch(first);
+    const after = JSON.parse(
+      await AsyncStorage.getItem("sheetposo:lastPoster")
+    );
+    expect(after.bgIndex).toBe(stored.bgIndex);
+  });
+
+  it("survives several launches rather than drifting one at a time", async () => {
+    let tree = await renderApp();
+    const original = posterQuote(tree);
+    for (let i = 0; i < 3; i++) {
+      tree = await relaunch(tree);
+    }
+    expect(posterQuote(tree)).toBe(original);
+  });
+
+  it("remembers a shuffle, not the quote that preceded it", async () => {
+    const first = await renderApp();
+    const before = posterQuote(first);
+    await press(first, "shuffle-button");
+    const shuffled = posterQuote(first);
+    expect(shuffled).not.toBe(before);
+
+    const second = await relaunch(first);
+    expect(posterQuote(second)).toBe(shuffled);
+  });
+
+  it("remembers a quote picked from the seen list", async () => {
+    const first = await renderApp();
+    await press(first, "seen-button");
+    const rows = first.root
+      .findByProps({ testID: "seen-sheet" })
+      .findAllByType(Text)
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string" && isQuote(child));
+
+    // The poster records its own quote as seen, so there is always a row.
+    // Rows carry no testID, so walk up from the text to whatever is pressable.
+    let node = first.root
+      .findByProps({ testID: "seen-sheet" })
+      .findAllByType(Text)
+      .find((n) => n.props.children === rows[0]);
+    while (node && typeof node.props.onPress !== "function") node = node.parent;
+    expect(node).toBeTruthy();
+    await act(async () => {
+      node.props.onPress();
+    });
+    const picked = posterQuote(first);
+
+    const second = await relaunch(first);
+    expect(posterQuote(second)).toBe(picked);
+  });
+
+  it("lets a notification tap win over the stored poster", async () => {
+    const Notifications = require("expo-notifications");
+    const first = await renderApp();
+    const stored = posterQuote(first);
+
+    const tapped = QUOTES.find((q) => shown(q) !== stored);
+    Notifications.useLastNotificationResponse.mockReturnValue({
+      notification: {
+        request: { content: { body: tapped, data: { quoteText: tapped } } },
+      },
+    });
+    const second = await relaunch(first);
+    Notifications.useLastNotificationResponse.mockReturnValue(null);
+
+    expect(posterQuote(second)).toBe(shown(tapped));
+    expect(posterQuote(second)).not.toBe(stored);
+  });
+
+  it("picks a fresh quote when the stored one no longer ships", async () => {
+    await AsyncStorage.setItem(
+      "sheetposo:lastPoster",
+      JSON.stringify({ quote: "a quote deleted in a later release", bgIndex: 2 })
+    );
+    const tree = await renderApp();
+    expect(posterQuote(tree)).toBeDefined();
+    expect(isQuote(posterQuote(tree))).toBe(true);
+    expectNoCrash(tree);
+  });
+
+  it("survives a background index from a build with more backgrounds", async () => {
+    await AsyncStorage.setItem(
+      "sheetposo:lastPoster",
+      JSON.stringify({ quote: QUOTES[5], bgIndex: 9999 })
+    );
+    const tree = await renderApp();
+    expect(posterQuote(tree)).toBe(shown(QUOTES[5]));
+    expectNoCrash(tree);
+  });
+
+  it("still opens when storage is unreadable", async () => {
+    AsyncStorage.getItem.mockRejectedValueOnce(new Error("storage gone"));
+    const tree = await renderApp();
+    expect(visibleText(tree).some((t) => isQuote(t))).toBe(true);
+    expectNoCrash(tree);
   });
 });
 
