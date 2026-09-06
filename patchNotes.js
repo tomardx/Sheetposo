@@ -13,6 +13,14 @@ export const PATCH_NOTES = [
     title: "The one that stays put",
     sections: [
       {
+        heading: "Changed, again",
+        items: [
+          "Well, we reconsidered this decision rather quickly. Shuffle is not limited any more. Two a day was a number we picked because one person read all 766 in an afternoon, which turned out to be a strange way to treat everybody else.",
+          "Shuffle as much as you like. If you go on a long enough run, the app will have something to say about it. It will not stop you. It will just be disappointed, quietly, in text.",
+          "The pacing was always the point, not the ration. A quote landing at a random moment is the joke. Thirty in a row is a list.",
+        ],
+      },
+      {
         heading: "Fixed",
         items: [
           "Closing the app and opening it again gave you a different quote, as though you had shuffled. You had not. The app was shuffling for free while you were rationed to two, which was neither fair nor intended.",

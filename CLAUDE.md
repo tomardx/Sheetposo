@@ -48,6 +48,23 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-09-06: Replace the shuffle limit with a pacing nudge
+
+- `shufflePace.js` (new, replaces `shuffleBudget.js`): nothing is blocked. The
+  app counts consecutive shuffles and remarks at 11, 20, 35 and 60, then goes
+  quiet. A gap over 3 minutes ends the run, so someone who opens the app a few
+  times a day and reads a few each time never sees any of it.
+- The hard limit of two a day was calibrated against one tester who read all
+  766 in an afternoon, and it broke the ordinary case. Pace is what spoils the
+  app, not volume, so the count is consecutive rather than daily.
+- `App.js`: the shuffle happens first and unconditionally, and the count is
+  registered afterwards, so a storage failure costs the remark rather than the
+  shuffle. The "N left" caption and the dimmed button are gone.
+- `__tests__/startup.test.js`: 10 tests, including one that shuffles past every
+  threshold and asserts the quote changes every time. Sabotage-checked: a run
+  that never resets fails one, nudges that repeat forever fail three.
+- `patchNotes.js`: 1.1.3 gains a "Changed, again" section.
+
 ### 2026-09-06: Reopen on the last poster instead of re-rolling
 
 - `lastPoster.js` (new): stores the quote and background on every change and
@@ -84,12 +101,3 @@ message and push to `origin`.
   themselves, which is the only honest way to write that line.
 - Header comment records that `date` means release day, so this does not drift
   again.
-
-### 2026-09-06: Correct the 1.1.2 patch note date
-
-- `patchNotes.js`: 1.1.2 was dated 26 August, the day the work was written, not
-  the day it ships. Now 6 September. Patch note dates are release dates, not
-  commit dates.
-- Still unverified: 1.1.0 is dated 19 August but the rarity work landed on the
-  26th, so one of the two is wrong. Left alone pending the real Play release
-  date.

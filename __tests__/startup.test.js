@@ -10,13 +10,11 @@ import { QUOTES, formatQuote } from "../quotes";
 import { BACKGROUNDS, BRAND } from "../backgrounds";
 import { RARITY, TIERS, tierOf, weightedRandomQuote } from "../rarity";
 import {
-  SHUFFLE_LIMIT,
-  WINDOW_MS,
-  budgetAt,
-  loadShuffleBudget,
-  spendShuffle,
-  timeUntil,
-} from "../shuffleBudget";
+  NUDGES,
+  RUN_GAP_MS,
+  nudgeFor,
+  registerShuffle,
+} from "../shufflePace";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -860,123 +858,107 @@ describe("previously seen", () => {
 
 // The reported bug was notifications arriving 2-3 at a time. One cause was
 // Android batching inexact alarms; the other was here, in the time picking.
-describe("rationed shuffles", () => {
+// The hard limit of two a day was calibrated against one tester who read the
+// whole collection in an afternoon, and it broke the ordinary case: dipping in
+// to read a few, several times a day. Pace is what spoils the app, not volume,
+// so the app now comments on a run and never blocks one.
+describe("shuffle pacing", () => {
   function press(tree, testID) {
     return act(async () => {
       tree.root.findByProps({ testID }).props.onPress();
     });
   }
 
-  const quoteOn = (tree) =>
-    visibleText(tree).find((text) => isQuote(text));
+  const quoteOn = (tree) => visibleText(tree).find((text) => isQuote(text));
 
-  const budgetLine = (tree) =>
-    tree.root.findByProps({ testID: "shuffle-budget" }).props.children;
+  const FIRST = NUDGES[0];
 
-  it("starts with the full allowance", async () => {
+  it("never blocks a shuffle, however many there are", async () => {
     const tree = await renderApp();
-    expect(budgetLine(tree)).toBe(`${SHUFFLE_LIMIT} left`);
+    let previous = quoteOn(tree);
+    // Well past every nudge in the list.
+    for (let i = 0; i < NUDGES[NUDGES.length - 1].at + 5; i++) {
+      await press(tree, "shuffle-button");
+      const current = quoteOn(tree);
+      expect(current).not.toBe(previous);
+      previous = current;
+    }
   });
 
-  it("spends one per shuffle and changes the quote", async () => {
+  it("says nothing to someone reading a few", async () => {
     const tree = await renderApp();
-    const before = quoteOn(tree);
-    await press(tree, "shuffle-button");
-    expect(budgetLine(tree)).toBe(`${SHUFFLE_LIMIT - 1} left`);
-    // The list is long enough that a repeat here would mean the shuffle did
-    // not happen, not that it got unlucky: randomQuote excludes the current.
-    expect(quoteOn(tree)).not.toBe(before);
-  });
-
-  it("refuses the shuffle after the limit and leaves the quote alone", async () => {
-    const tree = await renderApp();
-    for (let i = 0; i < SHUFFLE_LIMIT; i++) {
+    for (let i = 0; i < FIRST.at - 1; i++) {
       await press(tree, "shuffle-button");
     }
-    const stranded = quoteOn(tree);
-
-    await press(tree, "shuffle-button");
-    expect(quoteOn(tree)).toBe(stranded);
-    expect(visibleText(tree).some((t) => t.startsWith("That was your last one")))
-      .toBe(true);
-
-    // And it stays refused, rather than the toast being a one-off.
-    await press(tree, "shuffle-button");
-    expect(quoteOn(tree)).toBe(stranded);
-  });
-
-  it("survives a relaunch: the window is stored, not held in memory", async () => {
-    const first = await renderApp();
-    for (let i = 0; i < SHUFFLE_LIMIT; i++) {
-      await press(first, "shuffle-button");
+    for (const nudge of NUDGES) {
+      expect(visibleText(tree)).not.toContain(nudge.text);
     }
-
-    const second = await renderApp();
-    const stranded = quoteOn(second);
-    await press(second, "shuffle-button");
-    expect(quoteOn(second)).toBe(stranded);
   });
 
-  describe("the window itself", () => {
-    const NOON = Date.parse("2026-08-26T12:00:00Z");
+  it("speaks up once the run gets long", async () => {
+    const tree = await renderApp();
+    for (let i = 0; i < FIRST.at; i++) {
+      await press(tree, "shuffle-button");
+    }
+    expect(visibleText(tree)).toContain(FIRST.text);
+  });
 
-    it("opens at the first shuffle, not at midnight", () => {
-      const opened = { startedAt: NOON, used: 1 };
-      expect(budgetAt(opened, NOON + HOUR).resetsAt).toBe(NOON + WINDOW_MS);
-    });
+  describe("the run itself", () => {
+    const NOON = Date.parse("2026-09-06T12:00:00Z");
 
-    it("holds the limit for the whole window", () => {
-      const spent = { startedAt: NOON, used: SHUFFLE_LIMIT };
-      expect(budgetAt(spent, NOON + WINDOW_MS - 1).remaining).toBe(0);
-    });
-
-    it("refills the moment the window closes", () => {
-      const spent = { startedAt: NOON, used: SHUFFLE_LIMIT };
-      const after = budgetAt(spent, NOON + WINDOW_MS);
-      expect(after.remaining).toBe(SHUFFLE_LIMIT);
-      expect(after.resetsAt).toBe(0);
-    });
-
-    it("does not refill early for someone who shuffles late at night", async () => {
-      const LATE = Date.parse("2026-08-26T23:55:00Z");
-      await spendShuffle(LATE);
-      await spendShuffle(LATE);
-      // Five minutes later it is a new calendar day, and that must not matter.
-      const midnight = Date.parse("2026-08-27T00:00:00Z");
-      expect((await loadShuffleBudget(midnight)).remaining).toBe(0);
-      expect((await loadShuffleBudget(LATE + WINDOW_MS)).remaining).toBe(
-        SHUFFLE_LIMIT
-      );
-    });
-
-    it("reports a refusal rather than silently spending nothing", async () => {
-      for (let i = 0; i < SHUFFLE_LIMIT; i++) {
-        expect((await spendShuffle(NOON)).spent).toBe(true);
+    it("counts consecutive shuffles", async () => {
+      for (let i = 1; i <= 3; i++) {
+        const { count } = await registerShuffle(NOON + i * 1000);
+        expect(count).toBe(i);
       }
-      expect((await spendShuffle(NOON)).spent).toBe(false);
     });
 
-    it("fails open on unreadable storage instead of locking the button", async () => {
+    it("starts over after a gap, so dipping in never accumulates", async () => {
+      await registerShuffle(NOON);
+      await registerShuffle(NOON + 1000);
+      // The gap is measured from the previous shuffle, not from the start of
+      // the run, so this has to clear the threshold from NOON + 1000.
+      const { count } = await registerShuffle(NOON + 1000 + RUN_GAP_MS + 1);
+      expect(count).toBe(1);
+    });
+
+    it("keeps counting across a gap shorter than the threshold", async () => {
+      await registerShuffle(NOON);
+      const { count } = await registerShuffle(NOON + RUN_GAP_MS - 1);
+      expect(count).toBe(2);
+    });
+
+    it("says each line once per run, and nothing in between", async () => {
+      const said = [];
+      for (let i = 1; i <= FIRST.at + 2; i++) {
+        const { message } = await registerShuffle(NOON + i * 1000);
+        if (message) said.push(message);
+      }
+      expect(said).toEqual([FIRST.text]);
+    });
+
+    it("goes quiet after the last line rather than nagging", () => {
+      const last = NUDGES[NUDGES.length - 1];
+      for (let n = last.at + 1; n < last.at + 40; n++) {
+        expect(nudgeFor(n)).toBeNull();
+      }
+    });
+
+    it("escalates in order, and every threshold is reachable", () => {
+      const ats = NUDGES.map((n) => n.at);
+      expect([...ats].sort((a, b) => a - b)).toEqual(ats);
+      expect(new Set(ats).size).toBe(ats.length);
+      for (const nudge of NUDGES) {
+        expect(nudgeFor(nudge.at)).toBe(nudge.text);
+      }
+    });
+
+    it("still shuffles when storage is unreadable", async () => {
       AsyncStorage.getItem.mockRejectedValueOnce(new Error("storage gone"));
-      expect((await loadShuffleBudget(NOON)).remaining).toBe(SHUFFLE_LIMIT);
-    });
-
-    it("clamps a tampered count instead of trusting it", () => {
-      const absurd = { startedAt: NOON, used: -50 };
-      expect(budgetAt(absurd, NOON).remaining).toBe(SHUFFLE_LIMIT);
-      const alsoAbsurd = { startedAt: NOON, used: 9999 };
-      expect(budgetAt(alsoAbsurd, NOON).remaining).toBe(0);
-    });
-  });
-
-  describe("the countdown", () => {
-    it("rounds to something a person would say", () => {
-      const now = 1_000_000;
-      expect(timeUntil(now + 30 * 1000, now)).toBe("under a minute");
-      expect(timeUntil(now + 12 * MINUTE, now)).toBe("12m");
-      expect(timeUntil(now + 6 * HOUR, now)).toBe("6h");
-      expect(timeUntil(now + 6 * HOUR + 30 * MINUTE, now)).toBe("6h 30m");
-      expect(timeUntil(now - 1, now)).toBe("now");
+      const tree = await renderApp();
+      const before = quoteOn(tree);
+      await press(tree, "shuffle-button");
+      expect(quoteOn(tree)).not.toBe(before);
     });
   });
 });

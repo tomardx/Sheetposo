@@ -27,12 +27,7 @@ import { Poppins_500Medium } from "@expo-google-fonts/poppins/500Medium";
 import { QUOTES, formatQuote } from "./quotes";
 import { BACKGROUNDS, BRAND, randomBackgroundIndex } from "./backgrounds";
 import { loadLastPoster, saveLastPoster } from "./lastPoster";
-import {
-  SHUFFLE_LIMIT,
-  loadShuffleBudget,
-  spendShuffle,
-  timeUntil,
-} from "./shuffleBudget";
+import { registerShuffle } from "./shufflePace";
 import { TIERS, tierById, tierOf, weightedRandomQuote } from "./rarity";
 import {
   configureNotificationHandling,
@@ -277,13 +272,6 @@ function Poster() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
 
-  // Shuffles are rationed. Starts full so the button is never dead while the
-  // stored window is still being read.
-  const [budget, setBudget] = useState({
-    used: 0,
-    remaining: SHUFFLE_LIMIT,
-    resetsAt: 0,
-  });
 
   useEffect(() => {
     const timer = setTimeout(() => setSplashTimedOut(true), SPLASH_TIMEOUT_MS);
@@ -363,30 +351,13 @@ function Poster() {
     };
   }, [absorb, refreshSeen]);
 
-  useEffect(() => {
-    let cancelled = false;
-    loadShuffleBudget()
-      .then((current) => {
-        if (!cancelled) setBudget(current);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Coming back to the app re-checks, so notifications that fired while it was
-  // in the background are picked up without needing a relaunch. The shuffle
-  // window is re-read at the same time, since it usually expires while the app
-  // is closed rather than while someone is watching it.
+  // in the background are picked up without needing a relaunch.
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state !== "active") return;
       refreshSeen()
         .then(absorb)
-        .catch(() => {});
-      loadShuffleBudget()
-        .then(setBudget)
         .catch(() => {});
     });
     return () => sub.remove();
@@ -467,18 +438,15 @@ function Poster() {
   );
 
   const shuffle = useCallback(async () => {
-    const next = await spendShuffle();
-    setBudget(next);
-    if (!next.spent) {
-      showToast(`That was your last one. More in ${timeUntil(next.resetsAt)}.`);
-      return;
-    }
     setQuote((prev) => randomQuote(prev));
     setBgIndex((prev) => randomBackgroundIndex(prev));
+    // Counted after the fact, so a storage failure can never cost someone a
+    // shuffle. The most it costs is the remark.
+    const { message } = await registerShuffle();
+    if (message) showToast(message);
   }, [showToast]);
 
   const background = BACKGROUNDS[bgIndex];
-  const spent = budget.remaining <= 0;
 
   // Shares the poster image alone, no caption, link, or other text.
   const shareImage = useCallback(async () => {
@@ -562,7 +530,6 @@ function Poster() {
           style={({ pressed }) => [
             styles.pill,
             styles.shuffleButton,
-            spent && styles.shuffleButtonSpent,
             pressed && styles.pillPressed,
           ]}
         >
@@ -570,13 +537,6 @@ function Poster() {
             Shuffle
           </Text>
         </Pressable>
-        {/* Stays pressable when spent: a dead button explains nothing, and the
-            toast on press says when it comes back. */}
-        <Text style={[styles.shuffleBudget, chromeFont]} testID="shuffle-budget">
-          {spent
-            ? `none left, more in ${timeUntil(budget.resetsAt)}`
-            : `${budget.remaining} left`}
-        </Text>
         {/* Text-only label: no icon font to fail to load. */}
         <View style={styles.actionRow}>
           <Pressable
@@ -954,17 +914,6 @@ const styles = StyleSheet.create({
   shuffleButton: {
     paddingVertical: 14,
     paddingHorizontal: 34,
-  },
-  shuffleButtonSpent: {
-    opacity: 0.45,
-  },
-  shuffleBudget: {
-    marginTop: 8,
-    color: "rgba(247, 243, 234, 0.7)",
-    fontSize: 11,
-    letterSpacing: 1.4,
-    textAlign: "center",
-    textTransform: "lowercase",
   },
   shuffleText: {
     fontSize: 17,
