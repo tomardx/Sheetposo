@@ -8,6 +8,20 @@
 // Keep entries short. Nobody has ever wanted longer patch notes.
 export const PATCH_NOTES = [
   {
+    version: "1.1.3",
+    date: "6 September 2026",
+    title: "The one that stays put",
+    sections: [
+      {
+        heading: "Fixed",
+        items: [
+          "Closing the app and opening it again gave you a different quote, as though you had shuffled. You had not. The app was shuffling for free while you were rationed to two, which was neither fair nor intended.",
+          "It now opens on whatever you were last looking at, whether that came from a notification, a shuffle, or your Seen list. Tapping a notification still takes you straight to that quote.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.1.2",
     date: "6 September 2026",
     title: "The rationing update",
@@ -33,7 +47,6 @@ export const PATCH_NOTES = [
       {
         heading: "Fixed",
         items: [
-          "Closing the app and opening it again gave you a different quote, as though you had shuffled. You had not. The app was shuffling for free while you were rationed to two, which was neither fair nor intended. It now opens on whatever you were last looking at.",
           "Seen could climb past the total, which is how somebody reached 767 of 766. Quotes removed in an earlier update were still being counted, and a quote could be held twice under two spellings.",
           "If your number went down, that is the fix. You did not lose anything you still had.",
         ],

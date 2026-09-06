@@ -66,7 +66,8 @@ message and push to `origin`.
   out-of-range background, and unreadable storage. Sabotage-checked both ways:
   dropping the save fails five, letting the restore beat the notification
   fails one. The seenQuotes mock also needed `canonicalQuote`.
-- `patchNotes.js`: line under 1.1.2.
+- `patchNotes.js`: new 1.1.3 entry. 1.1.2 was already built and published, so
+  the fix could not go there.
 
 ### 2026-09-06: Re-derive every patch note date, and announce the notes
 
