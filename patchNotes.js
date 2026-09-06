@@ -5,7 +5,7 @@
 export const PATCH_NOTES = [
   {
     version: "1.1.2",
-    date: "26 August 2026",
+    date: "6 September 2026",
     title: "The rationing update",
     sections: [
       {

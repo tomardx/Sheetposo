@@ -48,6 +48,15 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-09-06: Correct the 1.1.2 patch note date
+
+- `patchNotes.js`: 1.1.2 was dated 26 August, the day the work was written, not
+  the day it ships. Now 6 September. Patch note dates are release dates, not
+  commit dates.
+- Still unverified: 1.1.0 is dated 19 August but the rarity work landed on the
+  26th, so one of the two is wrong. Left alone pending the real Play release
+  date.
+
 ### 2026-08-26: Make the patch notes a rule, and fill two gaps
 
 - `CLAUDE.md`: new rule 3. Anything a user could notice goes in `patchNotes.js`,
@@ -71,23 +80,3 @@ message and push to `origin`.
 - expo-updates stays installed. It is still the right tool for a fix that has
   to reach people in minutes, just not while production access is being
   reviewed.
-
-### 2026-08-26: Stop the Seen count going past the total
-
-- `seenQuotes.js`: history is keyed by text, which survives a reordered list
-  but not a deleted or rewritten quote. Entries matching nothing were still
-  counted and still shown, so a tester reached "767 of 766" and could keep
-  reading quotes removed with the legacy pack. Entries now resolve against the
-  live list through a `canonicalise` helper, and an old history is pruned once
-  on read rather than re-filtered forever.
-- Same helper folds the display form onto the raw text. Notifications carry raw
-  text, but the tray fallback reads the capitalised body, so one quote could
-  sit in history twice under two spellings.
-- `App.js`: `absorb` resolves too, since tray entries reach state without
-  passing through storage first.
-- `__tests__/seenQuotes.test.js`: 6 new tests, including "can never exceed the
-  size of the quote list". The old tests used invented strings like "a
-  delivered quote" and now use real ones. Sabotage-checked: keeping orphans
-  fails four.
-- `patchNotes.js`: 1.1.2 gains a Fixed section, because collections will shrink
-  and people will notice.
