@@ -48,6 +48,13 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-10-05: Set the build image so GitHub-triggered builds can dispatch
+
+- `eas.json`: `android.image: "latest"` on the preview and production
+  profiles. Expo's docs list an explicit `image` as a prerequisite for builds
+  triggered from GitHub, and the connector was failing every attempt with an
+  unexplained internal error. Build plumbing only, so no patch note.
+
 ### 2026-10-05: The enormous freaking phrases update (1.1.4)
 
 - `quotes.js`: 1,023 new quotes in seven commented groups (fitness, health and
@@ -79,24 +86,3 @@ message and push to `origin`.
   threshold and asserts the quote changes every time. Sabotage-checked: a run
   that never resets fails one, nudges that repeat forever fail three.
 - `patchNotes.js`: 1.1.3 gains a "Changed, again" section.
-
-### 2026-09-06: Reopen on the last poster instead of re-rolling
-
-- `lastPoster.js` (new): stores the quote and background on every change and
-  restores them on launch. The quote is kept as text and resolved against the
-  live list on read, like the seen history, so a quote deleted in a later
-  release cannot strand anyone. An out-of-range background index is treated as
-  absent rather than rendering nothing.
-- `App.js`: poster state was seeded from `randomQuote()` on every mount and
-  never persisted, so a cold start silently re-rolled. One effect now persists
-  whatever is on screen, covering shuffle, a notification tap and a pick from
-  the seen list without touching each path. The splash waits for the stored
-  poster so there is no flash of a random quote, with the existing 5s timeout
-  as the escape hatch, and a notification tap still outranks the stored poster.
-- `__tests__/startup.test.js`: 9 tests covering cold start, repeated launches,
-  each path that sets a quote, the notification race, a deleted quote, an
-  out-of-range background, and unreadable storage. Sabotage-checked both ways:
-  dropping the save fails five, letting the restore beat the notification
-  fails one. The seenQuotes mock also needed `canonicalQuote`.
-- `patchNotes.js`: new 1.1.3 entry. 1.1.2 was already built and published, so
-  the fix could not go there.
