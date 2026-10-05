@@ -100,6 +100,8 @@ export const RARITY = {
   "I C U P N I forgot what I had else to say.": "fish",
 
   // Legendary (unverified)
+  "a jellyfish has no brain and has survived for five hundred million years. there's hope for you.": "unverified",
+  "your skeleton is wet right now. that's information you didn't need, and now it's yours.": "unverified",
   "you're as orange as a banana.": "unverified",
   "imagine a pencis, heck, imagine two pencils.": "unverified",
   "the toaster remembers. the toaster always remembers.": "unverified",
@@ -111,6 +113,10 @@ export const RARITY = {
   "insight is cheap. Tuesday is expensive.": "unverified",
 
   // So rare it still moos
+  "you're breathing manually now. that's on you.": "moos",
+  "you said you were going to bed. you're reading this.": "moos",
+  "the self-checkout says 'unexpected item in bagging area'. that's you. you're the unexpected item.": "moos",
+  "an onion has layers. so do you, but nobody cries when they get through yours.": "moos",
   "it's not 'bad smell' it's your alpha aura, keep going champ.": "moos",
   "did you try turning it off and on again? how about setting it on fire?":
     "moos",
@@ -127,6 +133,12 @@ export const RARITY = {
   "you should be a sleeper agent, getting paid to sleep is cool.": "moos",
 
   // Somewhere between rare and legendary
+  "the recipe said 'season to taste', and you have no taste.": "between",
+  "you just straightened your back. it's already curling. it's fine. we all saw.": "between",
+  "your phone unlocks with your face, and some mornings it doesn't recognise you either.": "between",
+  "a pig can't look up at the sky. what's your excuse.": "between",
+  "you're a limited edition. nobody's collecting.": "between",
+  "your horoscope says today will be good. your horoscope is written by a man called Gary.": "between",
   "your phone doesn't feel very comfy with everything it's seen.": "between",
   "go outside and apologize to a tree, it knows what you did.": "between",
   "you have opened this app more times than you have opened a book.": "between",
@@ -159,6 +171,14 @@ export const RARITY = {
   "we ran out of wisdom around Tuesday.": "between",
 
   // Sooo uncommon
+  "soup is just a salad that got into a hot tub.": "uncommon",
+  "live, laugh, lie down.": "uncommon",
+  "you're emotionally al dente.": "uncommon",
+  "a raisin is a grape that let itself go, and it's thriving.": "uncommon",
+  "your skeleton is constantly smiling. it doesn't know what's going on either.": "uncommon",
+  "the leftovers in the fridge have formed a government.": "uncommon",
+  "a muffin is a cake that went to a job interview.": "uncommon",
+  "you're the reason the 'are you still watching?' screen exists.": "uncommon",
   "the fridge knows how many times you opened it for nothing.": "uncommon",
   "your keyboard is tired and it's not gonna say anything about it.":
     "uncommon",

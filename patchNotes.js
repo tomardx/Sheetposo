@@ -8,6 +8,29 @@
 // Keep entries short. Nobody has ever wanted longer patch notes.
 export const PATCH_NOTES = [
   {
+    version: "1.1.4",
+    date: "5 October 2026",
+    title: "The enormous freaking phrases update",
+    sections: [
+      {
+        heading: "Added",
+        items: [
+          "1,023 new quotes. There are now 1,789, which is more than you will read, and more than at least one of you will try to.",
+          "Fitness, for people who think about it. Health, for people who google it. Food, for people who stand at the open fridge waiting for something new to have been invented.",
+          "Puns. Bad ones. Deliberately. We kept them in their own section, away from the others, for everyone's safety.",
+          "Some of the new ones are rare. We are not saying which. You will know when the screen starts moving.",
+        ],
+      },
+      {
+        heading: "Why",
+        items: [
+          "A co-founder said the app needed more in it before it needed more rules. He was right, and he will now mention this at every opportunity.",
+          "Remember the man who read all 766 in one afternoon? He is now roughly a thousand short. Welcome back. Pace yourself. You won't.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.1.3",
     date: "6 September 2026",
     title: "The one that stays put",

@@ -48,6 +48,21 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-10-05: The enormous freaking phrases update (1.1.4)
+
+- `quotes.js`: 1,023 new quotes in seven commented groups (fitness, health and
+  sleep, food, puns, motivational parody, animal facts, home/work/tech/social),
+  total 1,789. Audited before insertion: house rules (lowercase start, closing
+  punctuation, no dashes, no double quotes), exact and near duplicates against
+  the shipped list (two near-duplicates dropped), and content-rating topics
+  (gambling, alcohol, drugs, sexual content, bodily functions, eating
+  disorders) kept out so the existing rating answers stay true.
+  `QUOTES_VERSION` 5 to 6 so scheduled notifications reschedule.
+- `rarity.js`: 20 of the new lines promoted (2 legendary, 4 moos, 6 between,
+  8 uncommon). Everything else splits into the common tiers by hash as before.
+- `patchNotes.js` and `app.json`: 1.1.4. Answers the co-founder feedback that
+  the app needed more content before it needed more rules.
+
 ### 2026-09-06: Replace the shuffle limit with a pacing nudge
 
 - `shufflePace.js` (new, replaces `shuffleBudget.js`): nothing is blocked. The
@@ -85,19 +100,3 @@ message and push to `origin`.
   fails one. The seenQuotes mock also needed `canonicalQuote`.
 - `patchNotes.js`: new 1.1.3 entry. 1.1.2 was already built and published, so
   the fix could not go there.
-
-### 2026-09-06: Re-derive every patch note date, and announce the notes
-
-- `patchNotes.js`: the dates were the days work was written, not the days it
-  shipped, and two entries shared 19 August. Each is now pinned to the last
-  commit its release actually contains: 1.0.2 to 10 August, 1.1.0 to 26 August
-  (it was on 19 August, which belongs to 1.0.3), 1.1.1 to 27 August, 1.1.2 to
-  6 September. 1.0.3 and 1.0.0 were already right.
-- 1.1.1's date is the one inference here. Its work and 1.1.0's landed on the
-  same day, so the gap between them is assumed rather than known. Correct it
-  from the Play Console Releases tab if it matters.
-- Same audit found 1.1.0 shipped the "What's new?" sheet without announcing it,
-  so that entry gains an Added section. The patch notes now announce
-  themselves, which is the only honest way to write that line.
-- Header comment records that `date` means release day, so this does not drift
-  again.
