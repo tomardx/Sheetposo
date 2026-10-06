@@ -30,8 +30,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#8A9A83"
-      },
-      "versionCode": 12
+      }
     },
     "plugins": [
       [
