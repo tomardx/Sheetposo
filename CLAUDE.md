@@ -48,6 +48,19 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-10-06: Make app.config.js CommonJS for server-side builds
+
+- `app.config.js`: `export default` became `module.exports`. Compared with
+  pull-up-tracker, whose GitHub builds dispatch, the only config Expo must
+  execute server-side is this file, and the old form throws
+  `SyntaxError: Unexpected token 'export'` under a plain `require()` because
+  the package has no `"type": "module"`. Local tooling transpiles it, which is
+  why CLI builds never noticed. Verified: `expo config` output is byte for byte
+  identical before and after, with and without `SHEETPOSO_PLAY_BUILD=1`.
+- `.eas/workflows/play-build.yml` (from earlier today) and the `eas.json`
+  image change stay: both are harmless and the workflow gives the session a
+  second dispatch route. Build plumbing, no patch note.
+
 ### 2026-10-06: Add a manual Play build workflow
 
 - `.eas/workflows/play-build.yml` (new): an EAS workflow that builds the
@@ -62,18 +75,3 @@ message and push to `origin`.
   profiles. Expo's docs list an explicit `image` as a prerequisite for builds
   triggered from GitHub, and the connector was failing every attempt with an
   unexplained internal error. Build plumbing only, so no patch note.
-
-### 2026-10-05: The enormous freaking phrases update (1.1.4)
-
-- `quotes.js`: 1,023 new quotes in seven commented groups (fitness, health and
-  sleep, food, puns, motivational parody, animal facts, home/work/tech/social),
-  total 1,789. Audited before insertion: house rules (lowercase start, closing
-  punctuation, no dashes, no double quotes), exact and near duplicates against
-  the shipped list (two near-duplicates dropped), and content-rating topics
-  (gambling, alcohol, drugs, sexual content, bodily functions, eating
-  disorders) kept out so the existing rating answers stay true.
-  `QUOTES_VERSION` 5 to 6 so scheduled notifications reschedule.
-- `rarity.js`: 20 of the new lines promoted (2 legendary, 4 moos, 6 between,
-  8 uncommon). Everything else splits into the common tiers by hash as before.
-- `patchNotes.js` and `app.json`: 1.1.4. Answers the co-founder feedback that
-  the app needed more content before it needed more rules.

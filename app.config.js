@@ -11,7 +11,11 @@
 // "Alarms & reminders" in the app's system settings.
 const PLAY_RESTRICTED_PERMISSIONS = ["android.permission.USE_EXACT_ALARM"];
 
-export default ({ config }) => {
+// CommonJS on purpose. Expo evaluates this file on its own servers before a
+// GitHub-triggered build starts, and the ES module form (`export default`)
+// in a package without "type": "module" is the one structural difference from
+// a sibling project whose GitHub builds dispatch normally.
+module.exports = ({ config }) => {
   const isPlayBuild = process.env.SHEETPOSO_PLAY_BUILD === "1";
   if (!isPlayBuild) return config;
 
