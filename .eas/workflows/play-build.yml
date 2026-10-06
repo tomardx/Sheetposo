@@ -1,0 +1,17 @@
+# Manual only: runs when triggered from expo.dev or the Expo connector, never
+# on push, so it cannot spend build credits by itself.
+#
+# Produces the signed production .aab for the Google Play closed track. The
+# production profile strips USE_EXACT_ALARM (see app.config.js).
+name: Play release build
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_android:
+    name: Android build for Google Play
+    type: build
+    params:
+      platform: android
+      profile: production

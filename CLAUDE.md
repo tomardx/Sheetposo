@@ -48,6 +48,14 @@ message and push to `origin`.
 
 ## Changelog
 
+### 2026-10-06: Add a manual Play build workflow
+
+- `.eas/workflows/play-build.yml` (new): an EAS workflow that builds the
+  production Android bundle. Dispatch only, never on push, so it cannot spend
+  build credits by itself. Exists because the Expo connector's direct build
+  trigger fails for this project with an unexplained internal error, while a
+  workflow run goes through a different path. Build plumbing, no patch note.
+
 ### 2026-10-05: Set the build image so GitHub-triggered builds can dispatch
 
 - `eas.json`: `android.image: "latest"` on the preview and production
@@ -69,20 +77,3 @@ message and push to `origin`.
   8 uncommon). Everything else splits into the common tiers by hash as before.
 - `patchNotes.js` and `app.json`: 1.1.4. Answers the co-founder feedback that
   the app needed more content before it needed more rules.
-
-### 2026-09-06: Replace the shuffle limit with a pacing nudge
-
-- `shufflePace.js` (new, replaces `shuffleBudget.js`): nothing is blocked. The
-  app counts consecutive shuffles and remarks at 11, 20, 35 and 60, then goes
-  quiet. A gap over 3 minutes ends the run, so someone who opens the app a few
-  times a day and reads a few each time never sees any of it.
-- The hard limit of two a day was calibrated against one tester who read all
-  766 in an afternoon, and it broke the ordinary case. Pace is what spoils the
-  app, not volume, so the count is consecutive rather than daily.
-- `App.js`: the shuffle happens first and unconditionally, and the count is
-  registered afterwards, so a storage failure costs the remark rather than the
-  shuffle. The "N left" caption and the dimmed button are gone.
-- `__tests__/startup.test.js`: 10 tests, including one that shuffles past every
-  threshold and asserts the quote changes every time. Sabotage-checked: a run
-  that never resets fails one, nudges that repeat forever fail three.
-- `patchNotes.js`: 1.1.3 gains a "Changed, again" section.
